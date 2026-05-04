@@ -26,6 +26,7 @@ h2 {
   text-align:center;
 }
 
+/* INPUTS + BUTTONS */
 input, button {
   width:100%;
   padding:14px;
@@ -57,25 +58,14 @@ input:focus {
   height:300px;
   margin-top:15px;
   border-radius:12px;
-
   opacity:1;
   transition:opacity 0.5s ease, transform 0.5s ease;
-  transform:scale(1);
 }
 
 #map.hidden {
   opacity:0;
   transform:scale(1.03);
   pointer-events:none;
-}
-
-/* SUMMARY */
-.summary {
-  margin-top:12px;
-  background:#121212;
-  border:2px dashed #00ff88;
-  padding:12px;
-  border-radius:12px;
 }
 
 /* DRIVER */
@@ -126,7 +116,13 @@ input:focus {
   100% { transform:rotate(360deg); }
 }
 
-/* 📸 Screenshot Mode CENTER */
+/* SUMMARY CLEAN */
+.summary {
+  margin-top:12px;
+  display:none;
+}
+
+/* 📸 Screenshot Mode */
 .screenshot-mode {
   display:flex;
   justify-content:center;
@@ -143,8 +139,7 @@ input:focus {
 }
 
 .screenshot-mode .summary {
-  margin:0;
-  text-align:center;
+  display:block !important;
   width:90%;
 }
 </style>
@@ -177,7 +172,7 @@ input:focus {
 
 <div id="map"></div>
 
-<div class="summary" id="summary" style="display:none;"></div>
+<div class="summary" id="summary"></div>
 
 <button id="backBtn" style="display:none;" onclick="exitScreenshot()">⬅️ Zurück</button>
 
@@ -244,16 +239,42 @@ async function startRide(){
 
   let poly=L.polyline(routeCoords).addTo(map);
 
-  document.getElementById("summary").style.display="block";
+  /* 💳 CLEAN RECEIPT */
   document.getElementById("summary").innerHTML=`
-    📋 <b>Fahrt Zusammenfassung</b><br><br>
-    👤 ${name}<br>
-    🕒 ${time}<br>
-    📍 ${from} ➜ ${to}<br>
+  <div style="
+    background:#0f0f0f;
+    padding:16px;
+    border-radius:14px;
+    border:1px solid #2a2a2a;
+    text-align:left;
+  ">
+
+    <div style="font-size:18px;font-weight:700;margin-bottom:10px;">
+      🚗 NicoUber Receipt
+    </div>
+
+    <div style="color:#aaa;font-size:13px;margin-bottom:12px;">
+      Fahrtbestätigung
+    </div>
+
+    👤 <b>${name}</b><br><br>
+    🕒 ${time}<br><br>
+
+    📍 <b>Startadresse:</b><br>
+    <span style="color:#aaa">${from}</span><br><br>
+
+    🎯 <b>Zieladresse:</b><br>
+    <span style="color:#aaa">${to}</span><br><br>
+
     🚗 ${driver.name} (${driver.car})<br>
     📏 ${dist} km<br>
     🥤 ${rb} Red Bull<br><br>
-    📸 Screenshot an ${driver.name}
+
+    <div style="text-align:center;color:#00ff88;font-weight:600;">
+      📸 Screenshot an ${driver.name}
+    </div>
+
+  </div>
   `;
 
   setTimeout(()=>{
@@ -270,7 +291,7 @@ async function startRide(){
       startDrive();
     },200);
 
-  },1000); // ⏱️ FIX: 1 SEKUNDE
+  },1000); // ⏱️ 1 SEKUNDE FIX
 }
 
 function startDrive(){
@@ -302,7 +323,7 @@ function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";
   document.getElementById("time").value="";
-  document.getElementById("summary").style.display="none";
+  document.getElementById("summary").innerHTML="";
   exitScreenshot();
   map.setView([52.3759, 9.7320], 13);
 }

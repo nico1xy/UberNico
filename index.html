@@ -88,7 +88,7 @@ input:focus {
   border:2px solid #00ff88;
 }
 
-/* LOADING */
+/* LOADING SCREEN */
 .screen {
   position:fixed;
   top:0;
@@ -116,10 +116,38 @@ input:focus {
   100% { transform:rotate(360deg); }
 }
 
-/* SUMMARY CLEAN */
-.summary {
-  margin-top:12px;
-  display:none;
+/* 🚗 UBER BOTTOM SHEET */
+.bottom-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  background: #0f0f0f;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+
+  padding: 16px;
+  transform: translateY(100%);
+  transition: transform 0.35s ease;
+
+  z-index: 999;
+  max-height: 70vh;
+  overflow-y: auto;
+
+  border-top: 1px solid #2a2a2a;
+}
+
+.bottom-sheet.active {
+  transform: translateY(0);
+}
+
+.bottom-handle {
+  width: 50px;
+  height: 5px;
+  background: #333;
+  border-radius: 10px;
+  margin: 0 auto 12px auto;
 }
 
 /* 📸 Screenshot Mode */
@@ -130,17 +158,12 @@ input:focus {
   height:100vh;
 }
 
-.screenshot-mode .app > *:not(.summary):not(#backBtn) {
+.screenshot-mode .app > *:not(.bottom-sheet):not(#backBtn) {
   display:none;
 }
 
 .screenshot-mode #map {
   display:none !important;
-}
-
-.screenshot-mode .summary {
-  display:block !important;
-  width:90%;
 }
 </style>
 </head>
@@ -156,7 +179,7 @@ input:focus {
 <input id="to" placeholder="Zieladresse">
 <input type="time" id="time">
 
-<div class="title">Bitte wählen Sie Ihren Fahrer</div>
+<div class="title">Bitte Fahrer wählen</div>
 
 <div class="driver active" onclick="selectDriver('nico', this)">
   🚗 Nico<br><small>Hyundai i30N</small>
@@ -172,7 +195,11 @@ input:focus {
 
 <div id="map"></div>
 
-<div class="summary" id="summary"></div>
+<!-- 🚀 BOTTOM SHEET -->
+<div id="bottomSheet" class="bottom-sheet">
+  <div class="bottom-handle"></div>
+  <div id="summary"></div>
+</div>
 
 <button id="backBtn" style="display:none;" onclick="exitScreenshot()">⬅️ Zurück</button>
 
@@ -180,7 +207,7 @@ input:focus {
 
 <div class="screen" id="screen">
   <div class="spinner"></div>
-  <h2>Fahrer wird gesucht...</h2>
+  <h2>🚗 Fahrer wird informiert...</h2>
 </div>
 
 <script>
@@ -239,17 +266,9 @@ async function startRide(){
 
   let poly=L.polyline(routeCoords).addTo(map);
 
-  /* 💳 CLEAN RECEIPT */
+  /* 💳 BOTTOM SHEET CONTENT */
   document.getElementById("summary").innerHTML=`
-  <div style="
-    background:#0f0f0f;
-    padding:16px;
-    border-radius:14px;
-    border:1px solid #2a2a2a;
-    text-align:left;
-  ">
-
-    <div style="font-size:18px;font-weight:700;margin-bottom:10px;">
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px;">
       🚗 NicoUber Receipt
     </div>
 
@@ -273,8 +292,6 @@ async function startRide(){
     <div style="text-align:center;color:#00ff88;font-weight:600;">
       📸 Screenshot an ${driver.name}
     </div>
-
-  </div>
   `;
 
   setTimeout(()=>{
@@ -288,10 +305,15 @@ async function startRide(){
         animate:true,
         duration:1.2
       });
+
       startDrive();
+
+      /* 🚀 SHEET SLIDE UP */
+      document.getElementById("bottomSheet").classList.add("active");
+
     },200);
 
-  },1000); // ⏱️ 1 SEKUNDE FIX
+  },1000);
 }
 
 function startDrive(){
@@ -323,7 +345,7 @@ function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";
   document.getElementById("time").value="";
-  document.getElementById("summary").innerHTML="";
+  document.getElementById("bottomSheet").classList.remove("active");
   exitScreenshot();
   map.setView([52.3759, 9.7320], 13);
 }

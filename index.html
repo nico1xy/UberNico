@@ -22,12 +22,9 @@ body {
   padding:15px;
 }
 
-h2 {
-  text-align:center;
-}
+h2 { text-align:center; }
 
-/* 🔘 ALLE BUTTONS GLEICH */
-button {
+input, button {
   width:100%;
   padding:14px;
   margin-top:10px;
@@ -35,22 +32,17 @@ button {
   border-radius:12px;
   font-size:15px;
   font-weight:bold;
-  cursor:pointer;
-  background:#00ff88;
   box-sizing:border-box;
 }
 
 input {
-  width:100%;
-  padding:14px;
-  margin-top:10px;
-  border:none;
-  border-radius:12px;
-  font-size:15px;
-  font-weight:bold;
-  box-sizing:border-box;
   background:#1c1c1c;
   color:white;
+}
+
+button {
+  background:#00ff88;
+  cursor:pointer;
 }
 
 input:focus {
@@ -62,6 +54,17 @@ input:focus {
   height:300px;
   margin-top:15px;
   border-radius:12px;
+
+  /* 🌫️ FADE EFFECT */
+  opacity:1;
+  transition:opacity 0.6s ease, transform 0.6s ease;
+  transform:scale(1);
+}
+
+#map.hidden {
+  opacity:0;
+  transform:scale(1.03);
+  pointer-events:none;
 }
 
 .card {
@@ -71,7 +74,7 @@ input:focus {
   border-radius:12px;
 }
 
-/* 📋 SUMMARY */
+/* SUMMARY */
 .summary {
   margin-top:12px;
   background:#121212;
@@ -80,7 +83,7 @@ input:focus {
   border-radius:12px;
 }
 
-/* Fahrer */
+/* DRIVER */
 .title {
   margin-top:15px;
   text-align:center;
@@ -100,12 +103,7 @@ input:focus {
   border:2px solid #00ff88;
 }
 
-/* 📸 Screenshot Mode */
-.screenshot-mode .app > *:not(.summary) {
-  display:none;
-}
-
-/* Fullscreen */
+/* LOADING */
 .screen {
   position:fixed;
   top:0;
@@ -117,6 +115,7 @@ input:focus {
   justify-content:center;
   align-items:center;
   flex-direction:column;
+  z-index:9999;
 }
 
 .spinner {
@@ -162,11 +161,7 @@ input:focus {
 <div id="map"></div>
 
 <div class="card" id="info"></div>
-
 <div class="summary" id="summary" style="display:none;"></div>
-
-<!-- 🔙 BACK BUTTON (Screenshot Mode) -->
-<button id="backBtn" style="display:none;" onclick="exitScreenshot()">⬅️ Zurück</button>
 
 </div>
 
@@ -215,6 +210,8 @@ async function startRide(){
     return;
   }
 
+  /* 🚫 MAP HIDE + LOADING */
+  document.getElementById("map").classList.add("hidden");
   document.getElementById("screen").style.display="flex";
 
   let s=await geocode(from);
@@ -229,7 +226,6 @@ async function startRide(){
   let rb=dist>50?2:1;
 
   let poly=L.polyline(routeCoords).addTo(map);
-  map.fitBounds(poly.getBounds());
 
   document.getElementById("info").innerHTML=`
     🚗 ${driver.name}<br>
@@ -251,8 +247,24 @@ async function startRide(){
   `;
 
   setTimeout(()=>{
+
     document.getElementById("screen").style.display="none";
-    startDrive();
+
+    /* 🌫️ SMOOTH MAP REVEAL */
+    setTimeout(()=>{
+      document.getElementById("map").classList.remove("hidden");
+
+      /* smooth zoom animation feel */
+      map.invalidateSize();
+      map.fitBounds(poly.getBounds(), {
+        animate:true,
+        duration:1.2
+      });
+
+      startDrive();
+
+    },200);
+
   },2000);
 }
 
@@ -270,25 +282,18 @@ function startDrive(){
   },250);
 }
 
-/* 📸 Screenshot Mode */
-function screenshotMode(){
-  document.body.classList.add("screenshot-mode");
-  document.getElementById("backBtn").style.display="block";
-}
-
-function exitScreenshot(){
-  document.body.classList.remove("screenshot-mode");
-  document.getElementById("backBtn").style.display="none";
-}
-
 function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";
   document.getElementById("time").value="";
   document.getElementById("info").innerHTML="";
   document.getElementById("summary").style.display="none";
-  exitScreenshot();
+  document.getElementById("map").classList.remove("hidden");
   map.setView([52.3759,9.7320],13);
+}
+
+function screenshotMode(){
+  document.body.classList.add("screenshot-mode");
 }
 
 </script>

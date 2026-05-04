@@ -16,37 +16,6 @@ body {
   color:white;
 }
 
-/* 🚀 SPLASH SCREEN */
-.splash {
-  position:fixed;
-  inset:0;
-  background:#000;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-  z-index:10000;
-  animation:fadeOut 1.5s ease forwards;
-  animation-delay:1.2s;
-}
-
-.splash h1 {
-  color:#00ff88;
-  font-size:28px;
-  margin:0;
-}
-
-.splash p {
-  color:#aaa;
-  font-size:12px;
-  margin-top:8px;
-}
-
-@keyframes fadeOut {
-  to { opacity:0; visibility:hidden; }
-}
-
-/* APP */
 .app {
   max-width:420px;
   margin:auto;
@@ -55,6 +24,7 @@ body {
 
 h2 { text-align:center; }
 
+/* INPUTS */
 input, button {
   width:100%;
   padding:14px;
@@ -76,15 +46,40 @@ input:focus {
   border:2px solid #00ff88 !important;
 }
 
+/* ⏰ TIME WRAPPER */
+.field {
+  margin-top:10px;
+}
+
+.label {
+  font-size:12px;
+  color:#aaa;
+  margin-bottom:6px;
+  padding-left:2px;
+}
+
+/* TIME INPUT CLEAN */
+input[type="time"] {
+  width:100%;
+  padding:14px;
+  margin:10px 0 0 0;
+  border:none;
+  border-radius:12px;
+  font-size:15px;
+  background:#1c1c1c;
+  color:white;
+  box-sizing:border-box;
+  height:48px;
+  appearance:none;
+  -webkit-appearance:none;
+}
+
+/* BUTTON */
 button {
   background:#00ff88;
   cursor:pointer;
   color:#000;
 }
-
-/* TIME */
-.field { margin-top:10px; }
-.label { font-size:12px; color:#aaa; margin-bottom:6px; }
 
 /* MAP */
 #map {
@@ -173,7 +168,12 @@ body.sheet-open #map {
   line-height:1.5;
 }
 
-/* LOADING */
+/* MAP FIX */
+.leaflet-control-container {
+  z-index:400 !important;
+}
+
+/* 🚗 LOADING */
 .screen {
   position:fixed;
   inset:0;
@@ -198,43 +198,10 @@ body.sheet-open #map {
 @keyframes spin {
   100% { transform:rotate(360deg); }
 }
-
-/* 🥤 RED BULL BADGE */
-.rb-badge {
-  position:fixed;
-  left:50%;
-  bottom:120px;
-  transform:translateX(-50%) translateY(30px);
-  background:#1a1a1a;
-  border:1px solid #00ff88;
-  color:white;
-  padding:10px 14px;
-  border-radius:12px;
-  font-size:13px;
-  opacity:0;
-  transition:0.4s ease;
-  z-index:9999;
-}
-
-.rb-badge.show {
-  opacity:1;
-  transform:translateX(-50%) translateY(0);
-}
-
-/* MAP FIX */
-.leaflet-control-container {
-  z-index:400 !important;
-}
 </style>
 </head>
 
 <body>
-
-<!-- 🚀 SPLASH -->
-<div class="splash">
-  <h1>🚗 NicoUber</h1>
-  <p>powered by clean UI</p>
-</div>
 
 <div class="app">
 
@@ -279,9 +246,6 @@ body.sheet-open #map {
   <div class="spinner"></div>
   <h3>🚗 Fahrer wird informiert...</h3>
 </div>
-
-<!-- 🥤 BADGE -->
-<div id="rbBadge" class="rb-badge">🥤 Red Bull Payment bestätigt</div>
 
 <script>
 
@@ -343,13 +307,6 @@ function toggleSheet(){
   isOpen ? closeSheet() : openSheet();
 }
 
-/* 🥤 BADGE */
-function showRB(){
-  let b=document.getElementById("rbBadge");
-  b.classList.add("show");
-  setTimeout(()=>b.classList.remove("show"),1500);
-}
-
 /* MAIN */
 async function startRide(){
 
@@ -365,6 +322,7 @@ async function startRide(){
     return;
   }
 
+  // 🚗 LOADING START
   document.getElementById("screen").style.display="flex";
 
   try {
@@ -372,8 +330,12 @@ async function startRide(){
     let s=await geocode(from);
     let e=await geocode(to);
 
+    if(!s || !e) throw new Error("Geocode failed");
+
     let res=await fetch(`https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`);
     let data=await res.json();
+
+    if(!data.routes || !data.routes[0]) throw new Error("Route failed");
 
     routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
 
@@ -382,6 +344,7 @@ async function startRide(){
 
     let poly=L.polyline(routeCoords).addTo(map);
 
+    // ⏱ 1 SEKUNDE FAKE LOADING
     setTimeout(()=>{
 
       document.getElementById("screen").style.display="none";
@@ -390,12 +353,10 @@ async function startRide(){
       startDrive();
       openSheet();
 
-      showRB();
-
       document.getElementById("sheetContent").innerHTML=`
         <div class="receipt">
 
-          📸 Bitte Screenshot dieser Fahrt an ${driver.name} senden<br><br>
+          📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
 
           👤 Name: ${name}<br>
           🕒 Abholzeit: ${time}<br><br>
@@ -415,7 +376,7 @@ async function startRide(){
   } catch(err){
     console.log(err);
     document.getElementById("screen").style.display="none";
-    alert("Fehler 😅");
+    alert("Fehler beim Laden 😅");
   }
 }
 

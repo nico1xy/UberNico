@@ -275,8 +275,12 @@ async function startRide(){
 
   let poly=L.polyline(routeCoords).addTo(map);
 
-  document.getElementById("sheetContent").innerHTML = `
+let driverName = driver.name;
+
+document.getElementById("sheetContent").innerHTML = `
   <div class="receipt">
+
+    📸 <b>Bitte senden Sie dem Fahrer ${driverName} einen Screenshot dieser Fahrt über WhatsApp.</b><br><br>
 
     <b>🚗 NicoUber Fahrtübersicht</b><br><br>
 

@@ -270,8 +270,8 @@ body.sheet-open #map {
 🚘 Kevin<br><small>90k Mercedes</small>
 </div>
 
-<button onclick="startRide()">Fahrt starten</button>
-<button onclick="resetRide()">Nächste Fahrt starten</button>
+<button onclick="startRide()">Abholung starten</button>
+<button onclick="resetRide()">Nächste Abholung starten</button>
 
 <div id="map"></div>
 
@@ -414,7 +414,7 @@ async function startRide(){
 
     document.getElementById("sheetContent").innerHTML=`
       <div class="receipt">
-        📸 Screenshot an ${driver.name}<br><br>
+        📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
 
         👤 Name: ${name}<br>
         🕒 ${time}<br><br>

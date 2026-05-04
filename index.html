@@ -46,22 +46,28 @@ input:focus {
   border:2px solid #00ff88 !important;
 }
 
+/* ⏰ TIME WRAPPER */
+.field {
+  margin-top:10px;
+}
+
+.label {
+  font-size:12px;
+  color:#aaa;
+  margin-bottom:6px;
+  padding-left:2px;
+}
+
+/* TIME INPUT CLEAN */
 input[type="time"] {
   width:100%;
   padding:14px;
-  margin-top:10px;
   border:none;
   border-radius:12px;
   font-size:15px;
-  font-family: system-ui;
   background:#1c1c1c;
   color:white;
   box-sizing:border-box;
-  appearance:none;
-  -webkit-appearance:none;
-  -moz-appearance:none;
-  height:auto;
-  line-height:normal;
 }
 
 /* BUTTON */
@@ -160,32 +166,6 @@ body.sheet-open #map {
   line-height:1.5;
 }
 
-/* LOADING */
-.screen {
-  position:fixed;
-  inset:0;
-  background:#000;
-  display:none;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-  z-index:9999;
-}
-
-.spinner {
-  width:50px;
-  height:50px;
-  border:4px solid #333;
-  border-top:4px solid #00ff88;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-  margin-bottom:10px;
-}
-
-@keyframes spin {
-  100% { transform:rotate(360deg); }
-}
-
 /* MAP FIX */
 .leaflet-control-container {
   z-index:400 !important;
@@ -202,7 +182,12 @@ body.sheet-open #map {
 <input id="name" placeholder="Dein Name">
 <input id="from" placeholder="Startadresse">
 <input id="to" placeholder="Zieladresse">
-<input type="time" id="time">
+
+<!-- ⏰ TIME FIELD CLEAN -->
+<div class="field">
+  <div class="label">⏰ Uhrzeit wählen</div>
+  <input type="time" id="time">
+</div>
 
 <div class="title">Fahrer wählen</div>
 
@@ -228,12 +213,6 @@ body.sheet-open #map {
 </div>
 
 <div id="sheetDock" onclick="toggleSheet()"></div>
-
-<!-- LOADING -->
-<div class="screen" id="screen">
-  <div class="spinner"></div>
-  <h3>🚗 Fahrer wird informiert...</h3>
-</div>
 
 <script>
 
@@ -310,64 +289,40 @@ async function startRide(){
     return;
   }
 
-  // 🚀 LOADING START
-  document.getElementById("screen").style.display="flex";
+  let s=await geocode(from);
+  let e=await geocode(to);
 
-  try {
+  let res=await fetch(`https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`);
+  let data=await res.json();
 
-    let s=await geocode(from);
-    let e=await geocode(to);
+  routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
 
-    if(!s || !e) throw new Error("Geocode failed");
+  let dist=(data.routes[0].distance/1000).toFixed(2);
+  let rb=dist>50?2:1;
 
-    let res=await fetch(`https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`);
-    let data=await res.json();
+  let poly=L.polyline(routeCoords).addTo(map);
 
-    if(!data.routes || !data.routes[0]) throw new Error("Route failed");
+  map.fitBounds(poly.getBounds());
+  startDrive();
+  openSheet();
 
-    routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+  document.getElementById("sheetContent").innerHTML=`
+    <div class="receipt">
 
-    let dist=(data.routes[0].distance/1000).toFixed(2);
-    let rb=dist>50?2:1;
+      📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
 
-    let poly=L.polyline(routeCoords).addTo(map);
+      👤 Name: ${name}<br>
+      🕒 Abholzeit: ${time}<br><br>
 
-    // ⏱ 1 SEKUNDE FAKE LOADING
-    setTimeout(()=>{
+      📍 Start: ${from}<br>
+      🎯 Ziel: ${to}<br><br>
 
-      document.getElementById("screen").style.display="none";
+      🚘 Fahrer: ${driver.name} (${driver.car})<br>
+      📏 Kilometer: ${dist} km<br>
+      🥤 Bezahlung: ${rb} Red Bull
 
-      map.fitBounds(poly.getBounds());
-      startDrive();
-      openSheet();
-
-      document.getElementById("sheetContent").innerHTML=`
-        <div class="receipt">
-
-          📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
-
-          🚗 NicoUber Fahrtübersicht<br><br>
-
-          👤 Name: ${name}<br>
-          🕒 Abholzeit: ${time}<br><br>
-
-          📍 Start: ${from}<br>
-          🎯 Ziel: ${to}<br><br>
-
-          🚘 Fahrer: ${driver.name} (${driver.car})<br>
-          📏 Kilometer: ${dist} km<br>
-          🥤 Bezahlung: ${rb} Red Bull
-
-        </div>
-      `;
-
-    },1000);
-
-  } catch(err){
-    console.log(err);
-    document.getElementById("screen").style.display="none";
-    alert("Fehler beim Laden der Route 😅");
-  }
+    </div>
+  `;
 }
 
 /* DRIVE */

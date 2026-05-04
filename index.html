@@ -22,7 +22,9 @@ body {
   padding:15px;
 }
 
-h2 { text-align:center; }
+h2 {
+  text-align:center;
+}
 
 input, button {
   width:100%;
@@ -50,14 +52,14 @@ input:focus {
   border:2px solid #00ff88;
 }
 
+/* MAP */
 #map {
   height:300px;
   margin-top:15px;
   border-radius:12px;
 
-  /* 🌫️ FADE EFFECT */
   opacity:1;
-  transition:opacity 0.6s ease, transform 0.6s ease;
+  transition:opacity 0.5s ease, transform 0.5s ease;
   transform:scale(1);
 }
 
@@ -65,13 +67,6 @@ input:focus {
   opacity:0;
   transform:scale(1.03);
   pointer-events:none;
-}
-
-.card {
-  margin-top:12px;
-  background:#1a1a1a;
-  padding:12px;
-  border-radius:12px;
 }
 
 /* SUMMARY */
@@ -103,7 +98,7 @@ input:focus {
   border:2px solid #00ff88;
 }
 
-/* LOADING */
+/* SCREEN */
 .screen {
   position:fixed;
   top:0;
@@ -129,6 +124,19 @@ input:focus {
 
 @keyframes spin {
   100% { transform:rotate(360deg); }
+}
+
+/* 📸 Screenshot Mode */
+.screenshot-mode .app > *:not(.summary):not(#backBtn) {
+  display:none;
+}
+
+.screenshot-mode #map {
+  display:none !important;
+}
+
+.screenshot-mode .summary {
+  display:block !important;
 }
 </style>
 </head>
@@ -160,8 +168,9 @@ input:focus {
 
 <div id="map"></div>
 
-<div class="card" id="info"></div>
 <div class="summary" id="summary" style="display:none;"></div>
+
+<button id="backBtn" style="display:none;" onclick="exitScreenshot()">⬅️ Zurück</button>
 
 </div>
 
@@ -210,7 +219,6 @@ async function startRide(){
     return;
   }
 
-  /* 🚫 MAP HIDE + LOADING */
   document.getElementById("map").classList.add("hidden");
   document.getElementById("screen").style.display="flex";
 
@@ -227,13 +235,6 @@ async function startRide(){
 
   let poly=L.polyline(routeCoords).addTo(map);
 
-  document.getElementById("info").innerHTML=`
-    🚗 ${driver.name}<br>
-    📍 ${dist} km<br>
-    🥤 ${rb} Red Bull<br>
-    📸 Screenshot an ${driver.name}
-  `;
-
   document.getElementById("summary").style.display="block";
   document.getElementById("summary").innerHTML=`
     📋 <b>Fahrt Zusammenfassung</b><br><br>
@@ -243,29 +244,22 @@ async function startRide(){
     ➡️ ${to}<br>
     🚗 ${driver.name} (${driver.car})<br>
     📏 ${dist} km<br>
-    🥤 ${rb} Red Bull
+    🥤 ${rb} Red Bull<br><br>
+    📸 Bitte Screenshot an ${driver.name} schicken
   `;
 
   setTimeout(()=>{
 
     document.getElementById("screen").style.display="none";
 
-    /* 🌫️ SMOOTH MAP REVEAL */
     setTimeout(()=>{
       document.getElementById("map").classList.remove("hidden");
-
-      /* smooth zoom animation feel */
       map.invalidateSize();
-      map.fitBounds(poly.getBounds(), {
-        animate:true,
-        duration:1.2
-      });
-
+      map.fitBounds(poly.getBounds(), {animate:true,duration:1.2});
       startDrive();
-
     },200);
 
-  },2000);
+  },900); // ⚡ schneller
 }
 
 function startDrive(){
@@ -282,18 +276,24 @@ function startDrive(){
   },250);
 }
 
+/* 📸 Screenshot Mode */
+function screenshotMode(){
+  document.body.classList.add("screenshot-mode");
+  document.getElementById("backBtn").style.display="block";
+}
+
+function exitScreenshot(){
+  document.body.classList.remove("screenshot-mode");
+  document.getElementById("backBtn").style.display="none";
+}
+
 function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";
   document.getElementById("time").value="";
-  document.getElementById("info").innerHTML="";
   document.getElementById("summary").style.display="none";
-  document.getElementById("map").classList.remove("hidden");
+  exitScreenshot();
   map.setView([52.3759,9.7320],13);
-}
-
-function screenshotMode(){
-  document.body.classList.add("screenshot-mode");
 }
 
 </script>

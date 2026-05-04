@@ -116,16 +116,15 @@ body.sheet-open #map {
   border-top-right-radius:18px;
   padding:16px;
 
-  transform:translateY(calc(100% - 60px)); /* nur Handle sichtbar */
+  transform:translateY(100%);
   transition:transform 0.35s ease;
 
   max-height:70vh;
   overflow:auto;
   z-index:1000;
-
-  touch-action:none;
 }
 
+/* OPEN STATE */
 .bottom-sheet.open {
   transform:translateY(0%);
 }
@@ -137,10 +136,10 @@ body.sheet-open #map {
   background:#333;
   border-radius:10px;
   margin:0 auto 12px auto;
-  cursor:grab;
+  cursor:pointer;
 }
 
-/* DOCK */
+/* DOCK HANDLE (always visible) */
 #sheetDock {
   position:fixed;
   bottom:10px;
@@ -200,11 +199,12 @@ body.sheet-open #map {
 
 <!-- SHEET -->
 <div id="bottomSheet" class="bottom-sheet">
-  <div class="bottom-handle"></div>
+  <div class="bottom-handle" onclick="toggleSheet()"></div>
   <div id="sheetContent"></div>
 </div>
 
-<div id="sheetDock" onclick="openSheet()"></div>
+<!-- HANDLE -->
+<div id="sheetDock" onclick="toggleSheet()"></div>
 
 <!-- LOADING -->
 <div class="screen" id="screen">
@@ -218,7 +218,9 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let selectedDriver="nico";
 let routeCoords=[],carMarker,step=0,timer;
+
 let sheet=document.getElementById("bottomSheet");
+let isOpen=false;
 
 function selectDriver(d,el){
   selectedDriver=d;
@@ -228,7 +230,7 @@ function selectDriver(d,el){
 
 function getDriver(){
   return selectedDriver==="nico"
-    ? {name:"Nico",car:"Hyundai i30N"}
+    ? {name:"Nico",car:"Hyundai i30iN"}
     : {name:"Kevin",car:"90k Mercedes"};
 }
 
@@ -238,7 +240,7 @@ async function geocode(q){
   return d[0];
 }
 
-/* SHEET */
+/* SHEET TOGGLE (CLICK ONLY) */
 function openSheet(){
   document.body.classList.add("sheet-open");
   sheet.classList.add("open");
@@ -247,6 +249,8 @@ function openSheet(){
   map.dragging.disable();
   map.scrollWheelZoom.disable();
   map.touchZoom.disable();
+
+  isOpen=true;
 }
 
 function closeSheet(){
@@ -257,40 +261,13 @@ function closeSheet(){
   map.dragging.enable();
   map.scrollWheelZoom.enable();
   map.touchZoom.enable();
+
+  isOpen=false;
 }
 
-/* SWIPE (nur HANDLE) */
-let handle=document.querySelector(".bottom-handle");
-let startY=0,currentY=0,isDragging=false;
-
-handle.addEventListener("touchstart",(e)=>{
-  startY=e.touches[0].clientY;
-  isDragging=true;
-});
-
-handle.addEventListener("touchmove",(e)=>{
-  if(!isDragging) return;
-
-  currentY=e.touches[0].clientY;
-  let diff=currentY-startY;
-
-  if(diff>0){
-    sheet.style.transform=`translateY(${diff}px)`;
-  }
-});
-
-handle.addEventListener("touchend",()=>{
-  isDragging=false;
-
-  let diff=currentY-startY;
-
-  if(diff>120){
-    closeSheet();
-  } else {
-    sheet.style.transform="";
-    sheet.classList.add("open");
-  }
-});
+function toggleSheet(){
+  isOpen ? closeSheet() : openSheet();
+}
 
 /* MAIN */
 async function startRide(){
@@ -316,6 +293,7 @@ async function startRide(){
   let data=await res.json();
 
   routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+
   let dist=(data.routes[0].distance/1000).toFixed(2);
   let rb=dist>50?2:1;
 
@@ -324,16 +302,15 @@ async function startRide(){
   document.getElementById("sheetContent").innerHTML=`
     <div class="receipt">
 
-      📸 Bitte senden Sie dem Fahrer ${driver.name} einen Screenshot dieser Fahrt über WhatsApp.<br><br>
+      📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp schicken<br><br>
 
       🚗 NicoUber Fahrtübersicht<br><br>
 
       👤 Name: ${name}<br>
       🕒 Abholzeit: ${time}<br><br>
 
-      📍 Startadresse:<br>${from}<br><br>
-
-      🎯 Zieladresse:<br>${to}<br><br>
+      📍 Start: ${from}<br><br>
+      🎯 Ziel: ${to}<br><br>
 
       🚘 Fahrer: ${driver.name} (${driver.car})<br>
       📏 Kilometer: ${dist} km<br>

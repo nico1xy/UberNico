@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Uber X Deluxe</title>
+<title>NicoUber</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -68,26 +68,13 @@ button:hover {
   font-weight:bold;
   color:#00ff88;
 }
-
-.car {
-  font-size:22px;
-}
-
-.fade {
-  animation:fade 0.5s ease;
-}
-
-@keyframes fade {
-  from {opacity:0;}
-  to {opacity:1;}
-}
 </style>
 </head>
 
 <body>
 <div class="app">
 
-<h2>🚗 Uber X Deluxe</h2>
+<h2>🚗 NicoUber</h2>
 
 <input id="name" placeholder="Dein Name">
 <input id="from" placeholder="Startadresse">
@@ -97,7 +84,7 @@ button:hover {
 
 <div id="map"></div>
 
-<div class="card fade" id="info"></div>
+<div class="card" id="info"></div>
 
 </div>
 
@@ -111,7 +98,6 @@ let routeCoords = [];
 let step = 0;
 let timer;
 
-// Namen speichern
 document.getElementById("name").value = localStorage.getItem("name") || "";
 
 function saveName() {
@@ -160,8 +146,8 @@ async function startRide() {
 
   let distance = (route.distance/1000).toFixed(2);
 
-  let surge = (Math.random()*1.5 + 1).toFixed(2);
-  let price = (distance * 1.5 * surge).toFixed(2);
+  // 🔥 Red Bull System
+  let redbull = distance > 50 ? 2 : 1;
 
   map.eachLayer(l => { if(l instanceof L.Polyline) map.removeLayer(l); });
 
@@ -171,16 +157,18 @@ async function startRide() {
   document.getElementById("info").innerHTML = `
     👤 ${name}<br>
     📍 ${distance} km<br>
-    ⚡ Surge x${surge}<br>
-    💰 ${price} €<br>
+    🥤 Preis: ${redbull} Red Bull<br>
     <div class="status">⏳ Wartet...</div>
+    <br>
+    📸 Bitte schicken Sie einen Screenshot Ihrer gewünschten Fahrt<br>
+    👉 Nico über WhatsApp
   `;
 
   setTimeout(startDrive, 3000);
 }
 
 function updateStatus(text){
-  document.getElementById("info").innerHTML += `<div class="status fade">${text}</div>`;
+  document.getElementById("info").innerHTML += `<div class="status">${text}</div>`;
 }
 
 function startDrive(){

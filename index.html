@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uber X Deluxe</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+body {
+  margin:0;
+  font-family: system-ui;
+  background:#0b0b0b;
+  color:white;
+}
+
+.app {
+  max-width:420px;
+  margin:auto;
+  padding:15px;
+}
+
+h2 {
+  text-align:center;
+}
+
+input, button {
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:none;
+  border-radius:12px;
+  font-size:15px;
+}
+
+input {
+  background:#1c1c1c;
+  color:white;
+}
+
+button {
+  background:#00ff88;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+button:hover {
+  transform:scale(1.03);
+}
+
+#map {
+  height:300px;
+  margin-top:15px;
+  border-radius:12px;
+}
+
+.card {
+  margin-top:12px;
+  background:#1a1a1a;
+  padding:12px;
+  border-radius:12px;
+}
+
+.status {
+  font-weight:bold;
+  color:#00ff88;
+}
+
+.car {
+  font-size:22px;
+}
+
+.fade {
+  animation:fade 0.5s ease;
+}
+
+@keyframes fade {
+  from {opacity:0;}
+  to {opacity:1;}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<h2>🚗 Uber X Deluxe</h2>
+
+<input id="name" placeholder="Dein Name">
+<input id="from" placeholder="Startadresse">
+<input id="to" placeholder="Zieladresse">
+
+<button onclick="startRide()">Fahrt starten</button>
+
+<div id="map"></div>
+
+<div class="card fade" id="info"></div>
+
+</div>
+
+<script>
+let map = L.map('map').setView([52.52, 13.40], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+let carMarker;
+let routeCoords = [];
+let step = 0;
+let timer;
+
+// Namen speichern
+document.getElementById("name").value = localStorage.getItem("name") || "";
+
+function saveName() {
+  localStorage.setItem("name", document.getElementById("name").value);
+}
+
+async function geocode(q) {
+  let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`;
+  let res = await fetch(url);
+  let data = await res.json();
+  return data[0];
+}
+
+async function startRide() {
+
+  saveName();
+
+  let name = document.getElementById("name").value;
+  let from = document.getElementById("from").value;
+  let to = document.getElementById("to").value;
+
+  if(!name || !from || !to){
+    alert("Alles ausfüllen!");
+    return;
+  }
+
+  updateStatus("🔍 Fahrer wird gesucht...");
+
+  let start = await geocode(from);
+  let end = await geocode(to);
+
+  if(!start || !end){
+    alert("Adresse nicht gefunden!");
+    return;
+  }
+
+  setTimeout(() => updateStatus("🚗 Fahrer gefunden!"), 1500);
+
+  let routeUrl = `https://router.project-osrm.org/route/v1/driving/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson`;
+
+  let res = await fetch(routeUrl);
+  let data = await res.json();
+
+  let route = data.routes[0];
+  routeCoords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+
+  let distance = (route.distance/1000).toFixed(2);
+
+  let surge = (Math.random()*1.5 + 1).toFixed(2);
+  let price = (distance * 1.5 * surge).toFixed(2);
+
+  map.eachLayer(l => { if(l instanceof L.Polyline) map.removeLayer(l); });
+
+  let polyline = L.polyline(routeCoords).addTo(map);
+  map.fitBounds(polyline.getBounds());
+
+  document.getElementById("info").innerHTML = `
+    👤 ${name}<br>
+    📍 ${distance} km<br>
+    ⚡ Surge x${surge}<br>
+    💰 ${price} €<br>
+    <div class="status">⏳ Wartet...</div>
+  `;
+
+  setTimeout(startDrive, 3000);
+}
+
+function updateStatus(text){
+  document.getElementById("info").innerHTML += `<div class="status fade">${text}</div>`;
+}
+
+function startDrive(){
+
+  updateStatus("🚗 Fahrer ist unterwegs...");
+
+  step = 0;
+
+  if(carMarker) map.removeLayer(carMarker);
+
+  carMarker = L.marker(routeCoords[0]).addTo(map);
+
+  timer = setInterval(() => {
+
+    if(step >= routeCoords.length){
+      clearInterval(timer);
+      updateStatus("✅ Angekommen!");
+      return;
+    }
+
+    carMarker.setLatLng(routeCoords[step]);
+    step++;
+
+  }, 100);
+}
+</script>
+
+</body>
+</html>

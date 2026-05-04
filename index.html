@@ -26,7 +26,6 @@ h2 {
   text-align:center;
 }
 
-/* Inputs */
 input, button {
   width:100%;
   padding:14px;
@@ -43,20 +42,12 @@ input {
   color:white;
 }
 
-/* 🕒 TIME FIELD FIX */
-#time {
-  padding:10px;
-  font-size:14px;
-  opacity:0.9;
+button {
+  background:#00ff88;
+  cursor:pointer;
 }
 
-/* Placeholder fake */
-#time::before {
-  content:"Uhrzeit auswählen";
-  color:#888;
-}
-
-#time:focus {
+input:focus {
   outline:none;
   border:2px solid #00ff88;
 }
@@ -65,9 +56,9 @@ input, button {
   -webkit-tap-highlight-color: transparent;
 }
 
-button {
-  background:#00ff88;
-  cursor:pointer;
+#time {
+  padding:10px;
+  font-size:14px;
 }
 
 #map {
@@ -85,6 +76,16 @@ button {
 
 .status {
   color:#00ff88;
+}
+
+/* 📋 SUMMARY */
+.summary {
+  margin-top:12px;
+  background:#121212;
+  border:2px dashed #00ff88;
+  padding:12px;
+  border-radius:12px;
+  font-size:14px;
 }
 
 /* Fahrer */
@@ -146,7 +147,6 @@ button {
 <input id="from" placeholder="Startadresse">
 <input id="to" placeholder="Zieladresse">
 
-<!-- 🕒 TIME -->
 <input type="time" id="time">
 
 <div class="title">Bitte wählen Sie Ihren Fahrer</div>
@@ -163,7 +163,11 @@ button {
 <button onclick="resetRide()">Neue Fahrt beginnen</button>
 
 <div id="map"></div>
+
 <div class="card" id="info"></div>
+
+<!-- 📋 SUMMARY BOX -->
+<div class="summary" id="summary" style="display:none;"></div>
 
 </div>
 
@@ -225,15 +229,29 @@ async function startRide(){
   map.fitBounds(poly.getBounds());
 
   info.innerHTML=`
-    👤 ${name}<br>
-    🕒 ${time}<br>
-    🚗 ${driver.name}<br>
+    🚗 Fahrer: ${driver.name}<br>
     📍 ${dist} km<br>
-    🥤 ${rb} Red Bull<br><br>
+    🥤 ${rb} Red Bull<br>
     📸 Screenshot an ${driver.name}
   `;
 
-  setTimeout(()=>{screen.style.display="none";startDrive();},2000);
+  /* 📋 SUMMARY */
+  summary.style.display="block";
+  summary.innerHTML=`
+    📋 <b>Fahrt Zusammenfassung</b><br><br>
+    👤 ${name}<br>
+    🕒 ${time}<br>
+    📍 ${from}<br>
+    ➡️ ${to}<br>
+    🚗 ${driver.name} (${driver.car})<br>
+    📏 ${dist} km<br>
+    🥤 ${rb} Red Bull
+  `;
+
+  setTimeout(()=>{
+    screen.style.display="none";
+    startDrive();
+  },2000);
 }
 
 function startDrive(){
@@ -253,6 +271,7 @@ function resetRide(){
   toInput.value="";
   timeInput.value="";
   info.innerHTML="";
+  summary.style.display="none";
   screen.style.display="none";
   map.setView([52.3759,9.7320],13);
 }

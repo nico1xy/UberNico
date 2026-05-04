@@ -22,9 +22,7 @@ body {
   padding:15px;
 }
 
-h2 {
-  text-align:center;
-}
+h2 { text-align:center; }
 
 input, button {
   width:100%;
@@ -34,7 +32,6 @@ input, button {
   border-radius:12px;
   font-size:15px;
   font-weight:bold;
-  box-sizing:border-box;
 }
 
 input {
@@ -52,15 +49,6 @@ input:focus {
   border:2px solid #00ff88;
 }
 
-input, button {
-  -webkit-tap-highlight-color: transparent;
-}
-
-#time {
-  padding:10px;
-  font-size:14px;
-}
-
 #map {
   height:300px;
   margin-top:15px;
@@ -74,10 +62,6 @@ input, button {
   border-radius:12px;
 }
 
-.status {
-  color:#00ff88;
-}
-
 /* 📋 SUMMARY */
 .summary {
   margin-top:12px;
@@ -85,7 +69,6 @@ input, button {
   border:2px dashed #00ff88;
   padding:12px;
   border-radius:12px;
-  font-size:14px;
 }
 
 /* Fahrer */
@@ -106,6 +89,15 @@ input, button {
 
 .driver.active {
   border:2px solid #00ff88;
+}
+
+/* 📸 Screenshot Mode */
+.screenshot-mode .app > *:not(.summary) {
+  display:none;
+}
+
+.screenshot-mode .summary {
+  display:block;
 }
 
 /* Fullscreen */
@@ -146,7 +138,6 @@ input, button {
 <input id="name" placeholder="Dein Name">
 <input id="from" placeholder="Startadresse">
 <input id="to" placeholder="Zieladresse">
-
 <input type="time" id="time">
 
 <div class="title">Bitte wählen Sie Ihren Fahrer</div>
@@ -161,12 +152,12 @@ input, button {
 
 <button onclick="startRide()">Fahrt starten</button>
 <button onclick="resetRide()">Neue Fahrt beginnen</button>
+<button onclick="screenshotMode()">📸 Screenshot Ansicht</button>
 
 <div id="map"></div>
 
 <div class="card" id="info"></div>
 
-<!-- 📋 SUMMARY BOX -->
 <div class="summary" id="summary" style="display:none;"></div>
 
 </div>
@@ -205,14 +196,18 @@ async function geocode(q){
 async function startRide(){
 
   let driver=getDriver();
-  let name=nameInput.value;
-  let from=fromInput.value;
-  let to=toInput.value;
-  let time=timeInput.value||"sofort";
 
-  if(!name||!from||!to){alert("Alles ausfüllen!");return;}
+  let name = document.getElementById("name").value;
+  let from = document.getElementById("from").value;
+  let to = document.getElementById("to").value;
+  let time = document.getElementById("time").value || "sofort";
 
-  screen.style.display="flex";
+  if(!name||!from||!to){
+    alert("Alles ausfüllen!");
+    return;
+  }
+
+  document.getElementById("screen").style.display="flex";
 
   let s=await geocode(from);
   let e=await geocode(to);
@@ -228,16 +223,15 @@ async function startRide(){
   let poly=L.polyline(routeCoords).addTo(map);
   map.fitBounds(poly.getBounds());
 
-  info.innerHTML=`
+  document.getElementById("info").innerHTML=`
     🚗 Fahrer: ${driver.name}<br>
     📍 ${dist} km<br>
     🥤 ${rb} Red Bull<br>
     📸 Screenshot an ${driver.name}
   `;
 
-  /* 📋 SUMMARY */
-  summary.style.display="block";
-  summary.innerHTML=`
+  document.getElementById("summary").style.display="block";
+  document.getElementById("summary").innerHTML=`
     📋 <b>Fahrt Zusammenfassung</b><br><br>
     👤 ${name}<br>
     🕒 ${time}<br>
@@ -249,7 +243,7 @@ async function startRide(){
   `;
 
   setTimeout(()=>{
-    screen.style.display="none";
+    document.getElementById("screen").style.display="none";
     startDrive();
   },2000);
 }
@@ -259,22 +253,30 @@ function startDrive(){
   carMarker=L.marker(routeCoords[0]).addTo(map);
 
   timer=setInterval(()=>{
-    if(step>=routeCoords.length){clearInterval(timer);return;}
+    if(step>=routeCoords.length){
+      clearInterval(timer);
+      return;
+    }
     carMarker.setLatLng(routeCoords[step]);
     step++;
   },250);
 }
 
 function resetRide(){
-  nameInput.value="";
-  fromInput.value="";
-  toInput.value="";
-  timeInput.value="";
-  info.innerHTML="";
-  summary.style.display="none";
-  screen.style.display="none";
+  document.getElementById("from").value="";
+  document.getElementById("to").value="";
+  document.getElementById("time").value="";
+  document.getElementById("info").innerHTML="";
+  document.getElementById("summary").style.display="none";
+  document.body.classList.remove("screenshot-mode");
   map.setView([52.3759,9.7320],13);
 }
+
+/* 📸 Screenshot Mode */
+function screenshotMode(){
+  document.body.classList.toggle("screenshot-mode");
+}
+
 </script>
 
 </body>

@@ -22,9 +22,12 @@ body {
   padding:15px;
 }
 
-h2 { text-align:center; }
+h2 {
+  text-align:center;
+}
 
-input, button {
+/* 🔘 ALLE BUTTONS GLEICH */
+button {
   width:100%;
   padding:14px;
   margin-top:10px;
@@ -32,16 +35,22 @@ input, button {
   border-radius:12px;
   font-size:15px;
   font-weight:bold;
+  cursor:pointer;
+  background:#00ff88;
+  box-sizing:border-box;
 }
 
 input {
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:none;
+  border-radius:12px;
+  font-size:15px;
+  font-weight:bold;
+  box-sizing:border-box;
   background:#1c1c1c;
   color:white;
-}
-
-button {
-  background:#00ff88;
-  cursor:pointer;
 }
 
 input:focus {
@@ -94,10 +103,6 @@ input:focus {
 /* 📸 Screenshot Mode */
 .screenshot-mode .app > *:not(.summary) {
   display:none;
-}
-
-.screenshot-mode .summary {
-  display:block;
 }
 
 /* Fullscreen */
@@ -160,6 +165,9 @@ input:focus {
 
 <div class="summary" id="summary" style="display:none;"></div>
 
+<!-- 🔙 BACK BUTTON (Screenshot Mode) -->
+<button id="backBtn" style="display:none;" onclick="exitScreenshot()">⬅️ Zurück</button>
+
 </div>
 
 <div class="screen" id="screen">
@@ -197,10 +205,10 @@ async function startRide(){
 
   let driver=getDriver();
 
-  let name = document.getElementById("name").value;
-  let from = document.getElementById("from").value;
-  let to = document.getElementById("to").value;
-  let time = document.getElementById("time").value || "sofort";
+  let name=document.getElementById("name").value;
+  let from=document.getElementById("from").value;
+  let to=document.getElementById("to").value;
+  let time=document.getElementById("time").value||"sofort";
 
   if(!name||!from||!to){
     alert("Alles ausfüllen!");
@@ -224,7 +232,7 @@ async function startRide(){
   map.fitBounds(poly.getBounds());
 
   document.getElementById("info").innerHTML=`
-    🚗 Fahrer: ${driver.name}<br>
+    🚗 ${driver.name}<br>
     📍 ${dist} km<br>
     🥤 ${rb} Red Bull<br>
     📸 Screenshot an ${driver.name}
@@ -262,19 +270,25 @@ function startDrive(){
   },250);
 }
 
+/* 📸 Screenshot Mode */
+function screenshotMode(){
+  document.body.classList.add("screenshot-mode");
+  document.getElementById("backBtn").style.display="block";
+}
+
+function exitScreenshot(){
+  document.body.classList.remove("screenshot-mode");
+  document.getElementById("backBtn").style.display="none";
+}
+
 function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";
   document.getElementById("time").value="";
   document.getElementById("info").innerHTML="";
   document.getElementById("summary").style.display="none";
-  document.body.classList.remove("screenshot-mode");
+  exitScreenshot();
   map.setView([52.3759,9.7320],13);
-}
-
-/* 📸 Screenshot Mode */
-function screenshotMode(){
-  document.body.classList.toggle("screenshot-mode");
 }
 
 </script>

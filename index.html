@@ -33,18 +33,20 @@ input, button {
   border:none;
   border-radius:12px;
   font-size:15px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.2s;
+  box-sizing:border-box;
 }
 
 input {
   background:#1c1c1c;
   color:white;
+  cursor:text;
 }
 
 button {
   background:#00ff88;
-  font-weight:bold;
-  cursor:pointer;
-  transition:0.2s;
 }
 
 button:hover {
@@ -68,35 +70,6 @@ button:hover {
   font-weight:bold;
   color:#00ff88;
 }
-
-/* 🔄 Reload Animation */
-.reload {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.9);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-  z-index:9999;
-}
-
-.loader {
-  width:50px;
-  height:50px;
-  border:4px solid #333;
-  border-top:4px solid #00ff88;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-  margin-bottom:15px;
-}
-
-@keyframes spin {
-  100% { transform: rotate(360deg); }
-}
 </style>
 </head>
 
@@ -118,14 +91,10 @@ button:hover {
 
 </div>
 
-<!-- 🔄 Reload Overlay -->
-<div class="reload" id="reload">
-  <div class="loader"></div>
-  <div>Neue Fahrt wird vorbereitet...</div>
-</div>
-
 <script>
-let map = L.map('map').setView([52.52, 13.40], 13);
+
+// 📍 HANNOVER START
+let map = L.map('map').setView([52.3759, 9.7320], 13);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
@@ -184,7 +153,9 @@ async function startRide() {
 
   let redbull = distance > 50 ? 2 : 1;
 
-  map.eachLayer(l => { if(l instanceof L.Polyline) map.removeLayer(l); });
+  map.eachLayer(l => {
+    if(l instanceof L.Polyline) map.removeLayer(l);
+  });
 
   let polyline = L.polyline(routeCoords).addTo(map);
   map.fitBounds(polyline.getBounds());
@@ -194,9 +165,6 @@ async function startRide() {
     📍 ${distance} km<br>
     🥤 Preis: ${redbull} Red Bull<br>
     <div class="status">⏳ Wartet...</div>
-    <br>
-    📸 Bitte schicken Sie einen Screenshot Ihrer gewünschten Fahrt<br>
-    👉 Nico über WhatsApp
   `;
 
   setTimeout(startDrive, 3000);
@@ -227,37 +195,29 @@ function startDrive(){
     carMarker.setLatLng(routeCoords[step]);
     step++;
 
-  }, 250); // 🐢 langsamer
+  }, 250);
 }
 
-/* 🔄 RESET MIT ANIMATION */
 function resetRide() {
 
-  document.getElementById("reload").style.display = "flex";
+  document.getElementById("from").value = "";
+  document.getElementById("to").value = "";
+  document.getElementById("info").innerHTML = "";
 
-  setTimeout(() => {
+  if(carMarker) map.removeLayer(carMarker);
 
-    document.getElementById("reload").style.display = "none";
+  map.eachLayer(l => {
+    if(l instanceof L.Polyline) map.removeLayer(l);
+  });
 
-    document.getElementById("from").value = "";
-    document.getElementById("to").value = "";
+  clearInterval(timer);
 
-    document.getElementById("info").innerHTML = "";
+  routeCoords = [];
+  step = 0;
 
-    if(carMarker) map.removeLayer(carMarker);
+  map.setView([52.3759, 9.7320], 13);
 
-    map.eachLayer(l => {
-      if(l instanceof L.Polyline) map.removeLayer(l);
-    });
-
-    clearInterval(timer);
-
-    routeCoords = [];
-    step = 0;
-
-    map.setView([52.52, 13.40], 13);
-
-  }, 1500);
+  updateStatus("🔄 Neue Fahrt gestartet");
 }
 </script>
 

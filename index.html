@@ -16,20 +16,18 @@ body {
   color:white;
 }
 
-/* Blur when sheet open */
-body.sheet-open #map,
-body.sheet-open .app > *:not(.bottom-sheet) {
-  filter: blur(6px);
-}
-
+/* APP */
 .app {
   max-width:420px;
   margin:auto;
   padding:15px;
 }
 
-h2 { text-align:center; }
+h2 {
+  text-align:center;
+}
 
+/* INPUTS + BUTTONS */
 input, button {
   width:100%;
   padding:14px;
@@ -56,9 +54,45 @@ button {
   height:300px;
   margin-top:15px;
   border-radius:12px;
+  opacity:1;
+  transition:opacity 0.5s ease, transform 0.5s ease;
+  transform:scale(1);
+}
+
+/* SUMMARY */
+.summary {
+  margin-top:12px;
+  display:none;
+}
+
+/* CLEAN RECEIPT CARD */
+.receipt {
+  background:#0f0f0f;
+  padding:16px;
+  border-radius:14px;
+  border:1px solid #2a2a2a;
+  text-align:left;
+}
+
+.receipt-title {
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.receipt-sub {
+  color:#aaa;
+  font-size:13px;
+  margin-bottom:12px;
 }
 
 /* DRIVER */
+.title {
+  margin-top:15px;
+  text-align:center;
+  color:#aaa;
+}
+
 .driver {
   background:#1a1a1a;
   padding:12px;
@@ -84,56 +118,39 @@ button {
   z-index:9999;
 }
 
-/* BOTTOM SHEET */
-.bottom-sheet {
-  position:fixed;
-  left:0;
-  right:0;
-  bottom:0;
-
-  background:#0f0f0f;
-  border-top-left-radius:18px;
-  border-top-right-radius:18px;
-
-  padding:16px;
-  transform:translateY(100%);
-  transition:0.35s ease;
-
-  max-height:70vh;
-  overflow:auto;
-
-  z-index:1000;
-  border-top:1px solid #2a2a2a;
-}
-
-.bottom-sheet.active {
-  transform:translateY(0);
-}
-
-.bottom-handle {
+/* SPINNER */
+.spinner {
   width:50px;
-  height:5px;
-  background:#333;
-  border-radius:10px;
-  margin:0 auto 12px auto;
-  cursor:pointer;
+  height:50px;
+  border:4px solid #333;
+  border-top:4px solid #00ff88;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
 }
 
-/* 📌 ALWAYS VISIBLE DOCK HANDLE */
-#sheetDock {
+@keyframes spin {
+  100% { transform:rotate(360deg); }
+}
+
+/* 📸 Screenshot mode */
+.screenshot-mode {
+  display:flex;
+  justify-content:center;
+  align-items:center;
   position:fixed;
-  bottom:12px;
-  left:50%;
-  transform:translateX(-50%);
-  width:70px;
-  height:6px;
-  background:#444;
-  border-radius:10px;
-  z-index:999;
-  cursor:pointer;
-  opacity:0.9;
+  inset:0;
+  background:#000;
+  z-index:9999;
 }
 
+.screenshot-mode .summary {
+  display:block !important;
+  width:90%;
+  margin:0;
+  text-align:center;
+}
+
+/* MAP FIX */
 .leaflet-control-container {
   z-index:400 !important;
 }
@@ -151,12 +168,14 @@ button {
 <input id="to" placeholder="Zieladresse">
 <input type="time" id="time">
 
+<div class="title">Fahrer wählen</div>
+
 <div class="driver active" onclick="selectDriver('nico',this)">
-🚗 Nico
+🚗 Nico<br><small>Hyundai i30N</small>
 </div>
 
 <div class="driver" onclick="selectDriver('kevin',this)">
-🚘 Kevin
+🚘 Kevin<br><small>90k Mercedes</small>
 </div>
 
 <button onclick="startRide()">Fahrt starten</button>
@@ -164,19 +183,14 @@ button {
 
 <div id="map"></div>
 
-<!-- BOTTOM SHEET -->
-<div id="bottomSheet" class="bottom-sheet">
-  <div class="bottom-handle" onclick="toggleSheet()"></div>
-  <div id="summary"></div>
-</div>
-
-<!-- ALWAYS VISIBLE HANDLE -->
-<div id="sheetDock" onclick="openSheet()"></div>
+<!-- SUMMARY -->
+<div class="summary" id="summary"></div>
 
 </div>
 
 <!-- LOADING -->
 <div class="screen" id="screen">
+  <div class="spinner"></div>
   <h2>🚗 Fahrer wird informiert...</h2>
 </div>
 
@@ -186,9 +200,7 @@ let map = L.map('map').setView([52.3759, 9.7320], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let selectedDriver="nico";
-let routeCoords=[],step=0,timer;
-let carMarker;
-let sheetOpen=false;
+let routeCoords=[],carMarker,step=0,timer;
 
 function selectDriver(d,el){
   selectedDriver=d;
@@ -199,32 +211,13 @@ function selectDriver(d,el){
 function getDriver(){
   return selectedDriver==="nico"
     ? {name:"Nico",car:"Hyundai i30N"}
-    : {name:"Kevin",car:"Mercedes AMG"};
+    : {name:"Kevin",car:"90k Mercedes"};
 }
 
 async function geocode(q){
   let r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
   let d=await r.json();
   return d[0];
-}
-
-/* SHEET CONTROL */
-function openSheet(){
-  document.body.classList.add("sheet-open");
-  document.getElementById("bottomSheet").classList.add("active");
-  document.getElementById("sheetDock").style.display="none";
-  sheetOpen=true;
-}
-
-function closeSheet(){
-  document.body.classList.remove("sheet-open");
-  document.getElementById("bottomSheet").classList.remove("active");
-  document.getElementById("sheetDock").style.display="block";
-  sheetOpen=false;
-}
-
-function toggleSheet(){
-  sheetOpen ? closeSheet() : openSheet();
 }
 
 /* MAIN */
@@ -235,6 +228,7 @@ async function startRide(){
   let name=document.getElementById("name").value;
   let from=document.getElementById("from").value;
   let to=document.getElementById("to").value;
+  let time=document.getElementById("time").value||"sofort";
 
   if(!name||!from||!to){
     alert("Alles ausfüllen!");
@@ -252,14 +246,41 @@ async function startRide(){
   routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
 
   let dist=(data.routes[0].distance/1000).toFixed(2);
+  let rb=dist>50?2:1;
 
   let poly=L.polyline(routeCoords).addTo(map);
 
+  /* CLEAN RECEIPT DESIGN */
+  document.getElementById("summary").style.display="block";
   document.getElementById("summary").innerHTML=`
-    <b>🚗 NicoUber Receipt</b><br><br>
-    👤 ${name}<br><br>
-    🚗 ${driver.name}<br>
+  <div class="receipt">
+
+    <div class="receipt-title">
+      🚗 NicoUber Receipt
+    </div>
+
+    <div class="receipt-sub">
+      Fahrtbestätigung
+    </div>
+
+    👤 <b>${name}</b><br><br>
+    🕒 ${time}<br><br>
+
+    📍 <b>Startadresse:</b><br>
+    <span style="color:#aaa">${from}</span><br><br>
+
+    🎯 <b>Zieladresse:</b><br>
+    <span style="color:#aaa">${to}</span><br><br>
+
+    🚗 ${driver.name} (${driver.car})<br>
     📏 ${dist} km<br>
+    🥤 ${rb} Red Bull<br><br>
+
+    <div style="text-align:center;color:#00ff88;font-weight:600;">
+      📸 Screenshot an ${driver.name}
+    </div>
+
+  </div>
   `;
 
   setTimeout(()=>{
@@ -270,11 +291,10 @@ async function startRide(){
 
     startDrive();
 
-    openSheet();
-
   },1000);
 }
 
+/* DRIVE ANIMATION */
 function startDrive(){
   step=0;
   carMarker=L.marker(routeCoords[0]).addTo(map);
@@ -289,11 +309,13 @@ function startDrive(){
   },250);
 }
 
+/* RESET */
 function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";
   document.getElementById("time").value="";
-  closeSheet();
+  document.getElementById("summary").innerHTML="";
+  document.getElementById("summary").style.display="none";
   map.setView([52.3759,9.7320],13);
 }
 

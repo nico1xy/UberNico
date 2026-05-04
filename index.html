@@ -24,6 +24,7 @@ body {
 
 h2 { text-align:center; }
 
+/* INPUTS */
 input, button {
   width:100%;
   padding:14px;
@@ -33,6 +34,8 @@ input, button {
   font-size:15px;
   font-weight:bold;
   box-sizing:border-box;
+  -webkit-appearance:none;
+  appearance:none;
 }
 
 input {
@@ -40,9 +43,23 @@ input {
   color:white;
 }
 
+/* 🔥 GREEN FOCUS */
+input:focus {
+  outline:none;
+  border:2px solid #00ff88 !important;
+}
+
+/* TIME FIX */
+input[type="time"] {
+  height:48px;
+  font-size:14px;
+}
+
+/* BUTTON */
 button {
   background:#00ff88;
   cursor:pointer;
+  color:#000;
 }
 
 /* MAP */
@@ -72,19 +89,6 @@ button {
   border:2px solid #00ff88;
 }
 
-/* RECEIPT */
-.summary {
-  margin-top:12px;
-  display:none;
-}
-
-.receipt {
-  background:#0f0f0f;
-  padding:16px;
-  border-radius:14px;
-  border:1px solid #2a2a2a;
-}
-
 /* LOADING */
 .screen {
   position:fixed;
@@ -95,6 +99,12 @@ button {
   align-items:center;
   flex-direction:column;
   z-index:9999;
+}
+
+/* BLUR */
+body.sheet-open .app,
+body.sheet-open #map {
+  filter: blur(6px);
 }
 
 /* SHEET */
@@ -108,14 +118,15 @@ button {
   border-top-right-radius:18px;
   padding:16px;
   transform:translateY(100%);
-  transition:0.35s ease;
+  transition:transform 0.35s ease;
   max-height:70vh;
   overflow:auto;
   z-index:1000;
+  touch-action:none;
 }
 
-.bottom-sheet.active {
-  transform:translateY(0);
+.bottom-sheet.open {
+  transform:translateY(0%);
 }
 
 /* HANDLE */
@@ -125,10 +136,10 @@ button {
   background:#333;
   border-radius:10px;
   margin:0 auto 12px auto;
-  cursor:pointer;
+  cursor:grab;
 }
 
-/* ALWAYS VISIBLE HANDLE */
+/* DOCK HANDLE */
 #sheetDock {
   position:fixed;
   bottom:10px;
@@ -142,13 +153,16 @@ button {
   cursor:pointer;
 }
 
-/* 🌫 BLUR FIX */
-body.sheet-open .app,
-body.sheet-open #map {
-  filter: blur(6px);
-  transition: 0.3s;
+/* RECEIPT */
+.receipt {
+  background:#0f0f0f;
+  padding:16px;
+  border-radius:14px;
+  border:1px solid #2a2a2a;
+  line-height:1.5;
 }
 
+/* MAP FIX */
 .leaflet-control-container {
   z-index:400 !important;
 }
@@ -181,18 +195,15 @@ body.sheet-open #map {
 
 <div id="map"></div>
 
-<!-- SUMMARY -->
-<div class="summary" id="summary"></div>
-
 </div>
 
 <!-- SHEET -->
 <div id="bottomSheet" class="bottom-sheet">
-  <div class="bottom-handle" onclick="toggleSheet()"></div>
+  <div class="bottom-handle"></div>
   <div id="sheetContent"></div>
 </div>
 
-<!-- DOCK HANDLE -->
+<!-- HANDLE -->
 <div id="sheetDock" onclick="openSheet()"></div>
 
 <!-- LOADING -->
@@ -207,7 +218,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let selectedDriver="nico";
 let routeCoords=[],carMarker,step=0,timer;
-let sheetOpen=false;
+let sheet=document.getElementById("bottomSheet");
 
 function selectDriver(d,el){
   selectedDriver=d;
@@ -227,24 +238,51 @@ async function geocode(q){
   return d[0];
 }
 
-/* SHEET SYSTEM */
+/* SHEET */
 function openSheet(){
   document.body.classList.add("sheet-open");
-  document.getElementById("bottomSheet").classList.add("active");
+  sheet.classList.add("open");
   document.getElementById("sheetDock").style.display="none";
-  sheetOpen=true;
 }
 
 function closeSheet(){
   document.body.classList.remove("sheet-open");
-  document.getElementById("bottomSheet").classList.remove("active");
+  sheet.classList.remove("open");
   document.getElementById("sheetDock").style.display="block";
-  sheetOpen=false;
 }
 
 function toggleSheet(){
-  sheetOpen ? closeSheet() : openSheet();
+  sheet.classList.contains("open") ? closeSheet() : openSheet();
 }
+
+/* SWIPE */
+let startY=0,currentY=0,isDragging=false;
+
+sheet.addEventListener("touchstart",(e)=>{
+  startY=e.touches[0].clientY;
+  isDragging=true;
+});
+
+sheet.addEventListener("touchmove",(e)=>{
+  if(!isDragging) return;
+  currentY=e.touches[0].clientY;
+  let diff=currentY-startY;
+  if(diff>0){
+    sheet.style.transform=`translateY(${diff}px)`;
+  }
+});
+
+sheet.addEventListener("touchend",()=>{
+  isDragging=false;
+  let diff=currentY-startY;
+
+  if(diff>120){
+    closeSheet();
+  } else {
+    sheet.style.transform="";
+    sheet.classList.add("open");
+  }
+});
 
 /* MAIN */
 async function startRide(){
@@ -270,40 +308,28 @@ async function startRide(){
   let data=await res.json();
 
   routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
-
   let dist=(data.routes[0].distance/1000).toFixed(2);
+  let rb=dist>50?2:1;
 
   let poly=L.polyline(routeCoords).addTo(map);
 
-let driverName = driver.name;
-
-document.getElementById("sheetContent").innerHTML = `
+ document.getElementById("sheetContent").innerHTML=`
   <div class="receipt">
 
-    📸 <b>Bitte senden Sie dem Fahrer ${driverName} einen Screenshot dieser Fahrt über WhatsApp.</b><br><br>
+    📸 <b>Bitte senden Sie dem Fahrer ${driver.name} einen Screenshot dieser Fahrt über WhatsApp.</b><br><br>
 
-    <b>🚗 NicoUber Fahrtübersicht</b><br><br>
+    🚗 <b>NicoUber Fahrtübersicht</b><br><br>
 
-    👤 <b>Name:</b><br>
-    ${name}<br><br>
+    👤 Name: ${name}<br>
+    🕒 Abholzeit: ${time}<br><br>
 
-    🕒 <b>Abholzeit:</b><br>
-    ${time}<br><br>
+    📍 Startadresse:<br>${from}<br><br>
 
-    📍 <b>Startadresse:</b><br>
-    <span style="color:#aaa">${from}</span><br><br>
+    🎯 Zieladresse:<br>${to}<br><br>
 
-    🎯 <b>Zieladresse:</b><br>
-    <span style="color:#aaa">${to}</span><br><br>
-
-    🚘 <b>Fahrer:</b><br>
-    ${driver.name} (${driver.car})<br><br>
-
-    📏 <b>Kilometer:</b><br>
-    ${dist} km<br><br>
-
-    🥤 <b>Bezahlung:</b><br>
-    ${dist > 50 ? "2 Red Bull 🥤🥤" : "1 Red Bull 🥤"}
+    🚘 Fahrer: ${driver.name} (${driver.car})<br>
+    📏 Kilometer: ${dist} km<br>
+    🥤 Bezahlung: ${rb} Red Bull
 
   </div>
 `;
@@ -311,16 +337,14 @@ document.getElementById("sheetContent").innerHTML = `
   setTimeout(()=>{
 
     document.getElementById("screen").style.display="none";
-
     map.fitBounds(poly.getBounds());
-
     startDrive();
-
     openSheet();
 
   },1000);
 }
 
+/* DRIVE */
 function startDrive(){
   step=0;
   carMarker=L.marker(routeCoords[0]).addTo(map);
@@ -335,6 +359,7 @@ function startDrive(){
   },250);
 }
 
+/* RESET */
 function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";

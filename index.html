@@ -22,11 +22,8 @@ body {
   padding:15px;
 }
 
-h2 {
-  text-align:center;
-}
+h2 { text-align:center; }
 
-/* INPUTS + BUTTONS */
 input, button {
   width:100%;
   padding:14px;
@@ -48,24 +45,12 @@ button {
   cursor:pointer;
 }
 
-input:focus {
-  outline:none;
-  border:2px solid #00ff88;
-}
-
 /* MAP */
 #map {
   height:300px;
   margin-top:15px;
   border-radius:12px;
-  opacity:1;
-  transition:opacity 0.5s ease, transform 0.5s ease;
-}
-
-#map.hidden {
-  opacity:0;
-  transform:scale(1.03);
-  pointer-events:none;
+  transition:0.4s;
 }
 
 /* DRIVER */
@@ -88,13 +73,10 @@ input:focus {
   border:2px solid #00ff88;
 }
 
-/* LOADING SCREEN */
+/* LOADING */
 .screen {
   position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
+  inset:0;
   background:#000;
   display:none;
   justify-content:center;
@@ -116,38 +98,48 @@ input:focus {
   100% { transform:rotate(360deg); }
 }
 
-/* 🚗 UBER BOTTOM SHEET */
+/* 🚗 BOTTOM SHEET */
 .bottom-sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
 
-  background: #0f0f0f;
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
+  background:#0f0f0f;
+  border-top-left-radius:18px;
+  border-top-right-radius:18px;
 
-  padding: 16px;
-  transform: translateY(100%);
-  transition: transform 0.35s ease;
+  padding:16px;
+  transform:translateY(100%);
+  transition:0.35s ease;
 
-  z-index: 999;
-  max-height: 70vh;
-  overflow-y: auto;
+  max-height:70vh;
+  overflow:auto;
 
-  border-top: 1px solid #2a2a2a;
+  z-index:1000;
+  border-top:1px solid #2a2a2a;
 }
 
 .bottom-sheet.active {
-  transform: translateY(0);
+  transform:translateY(0);
 }
 
 .bottom-handle {
-  width: 50px;
-  height: 5px;
-  background: #333;
-  border-radius: 10px;
-  margin: 0 auto 12px auto;
+  width:50px;
+  height:5px;
+  background:#333;
+  border-radius:10px;
+  margin:0 auto 12px auto;
+  cursor:pointer;
+}
+
+/* 🗺️ FIX MAP CONTROLS OVERLAP */
+.leaflet-control-container {
+  z-index: 500 !important;
+}
+
+.bottom-sheet {
+  z-index: 1000 !important;
 }
 
 /* 📸 Screenshot Mode */
@@ -179,7 +171,7 @@ input:focus {
 <input id="to" placeholder="Zieladresse">
 <input type="time" id="time">
 
-<div class="title">Bitte Fahrer wählen</div>
+<div class="title">Fahrer wählen</div>
 
 <div class="driver active" onclick="selectDriver('nico', this)">
   🚗 Nico<br><small>Hyundai i30N</small>
@@ -190,14 +182,14 @@ input:focus {
 </div>
 
 <button onclick="startRide()">Fahrt starten</button>
-<button onclick="resetRide()">Neue Fahrt beginnen</button>
-<button onclick="screenshotMode()">📸 Screenshot Ansicht</button>
+<button onclick="resetRide()">Neue Fahrt</button>
+<button onclick="screenshotMode()">📸 Screenshot</button>
 
 <div id="map"></div>
 
-<!-- 🚀 BOTTOM SHEET -->
+<!-- 🚗 BOTTOM SHEET -->
 <div id="bottomSheet" class="bottom-sheet">
-  <div class="bottom-handle"></div>
+  <div class="bottom-handle" onclick="toggleSheet()"></div>
   <div id="summary"></div>
 </div>
 
@@ -205,6 +197,7 @@ input:focus {
 
 </div>
 
+<!-- LOADING -->
 <div class="screen" id="screen">
   <div class="spinner"></div>
   <h2>🚗 Fahrer wird informiert...</h2>
@@ -236,6 +229,7 @@ async function geocode(q){
   return d[0];
 }
 
+/* 🚀 MAIN */
 async function startRide(){
 
   let driver=getDriver();
@@ -250,7 +244,6 @@ async function startRide(){
     return;
   }
 
-  document.getElementById("map").classList.add("hidden");
   document.getElementById("screen").style.display="flex";
 
   let s=await geocode(from);
@@ -266,52 +259,28 @@ async function startRide(){
 
   let poly=L.polyline(routeCoords).addTo(map);
 
-  /* 💳 BOTTOM SHEET CONTENT */
   document.getElementById("summary").innerHTML=`
-    <div style="font-size:18px;font-weight:700;margin-bottom:8px;">
-      🚗 NicoUber Receipt
-    </div>
-
-    <div style="color:#aaa;font-size:13px;margin-bottom:12px;">
-      Fahrtbestätigung
-    </div>
-
-    👤 <b>${name}</b><br><br>
+    <b>🚗 NicoUber Receipt</b><br><br>
+    👤 ${name}<br>
     🕒 ${time}<br><br>
-
-    📍 <b>Startadresse:</b><br>
-    <span style="color:#aaa">${from}</span><br><br>
-
-    🎯 <b>Zieladresse:</b><br>
-    <span style="color:#aaa">${to}</span><br><br>
-
+    📍 Start: ${from}<br>
+    🎯 Ziel: ${to}<br><br>
     🚗 ${driver.name} (${driver.car})<br>
     📏 ${dist} km<br>
     🥤 ${rb} Red Bull<br><br>
-
-    <div style="text-align:center;color:#00ff88;font-weight:600;">
-      📸 Screenshot an ${driver.name}
-    </div>
+    📸 Screenshot an ${driver.name}
   `;
 
   setTimeout(()=>{
 
     document.getElementById("screen").style.display="none";
 
-    setTimeout(()=>{
-      document.getElementById("map").classList.remove("hidden");
-      map.invalidateSize();
-      map.fitBounds(poly.getBounds(), {
-        animate:true,
-        duration:1.2
-      });
+    map.invalidateSize();
+    map.fitBounds(poly.getBounds());
 
-      startDrive();
+    startDrive();
 
-      /* 🚀 SHEET SLIDE UP */
-      document.getElementById("bottomSheet").classList.add("active");
-
-    },200);
+    document.getElementById("bottomSheet").classList.add("active");
 
   },1000);
 }
@@ -330,7 +299,12 @@ function startDrive(){
   },250);
 }
 
-/* 📸 Screenshot Mode */
+/* 🚗 SHEET TOGGLE */
+function toggleSheet(){
+  document.getElementById("bottomSheet").classList.toggle("active");
+}
+
+/* 📸 */
 function screenshotMode(){
   document.body.classList.add("screenshot-mode");
   document.getElementById("backBtn").style.display="block";

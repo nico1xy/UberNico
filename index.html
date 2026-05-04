@@ -16,6 +16,13 @@ body {
   color:white;
 }
 
+/* 🧠 Blur when sheet open */
+body.sheet-open #map,
+body.sheet-open .app > *:not(.bottom-sheet) {
+  filter: blur(6px);
+  transition: filter 0.3s ease;
+}
+
 .app {
   max-width:420px;
   margin:auto;
@@ -45,12 +52,17 @@ button {
   cursor:pointer;
 }
 
-/* MAP */
+input:focus {
+  outline:none;
+  border:2px solid #00ff88;
+}
+
+/* 🗺️ MAP */
 #map {
   height:300px;
   margin-top:15px;
   border-radius:12px;
-  transition:0.4s;
+  transition:0.3s;
 }
 
 /* DRIVER */
@@ -73,7 +85,7 @@ button {
   border:2px solid #00ff88;
 }
 
-/* LOADING */
+/* 🚗 LOADING */
 .screen {
   position:fixed;
   inset:0;
@@ -98,7 +110,7 @@ button {
   100% { transform:rotate(360deg); }
 }
 
-/* 🚗 BOTTOM SHEET */
+/* 📦 BOTTOM SHEET */
 .bottom-sheet {
   position:fixed;
   left:0;
@@ -133,29 +145,17 @@ button {
   cursor:pointer;
 }
 
-/* 🗺️ FIX MAP CONTROLS OVERLAP */
+/* 📸 Screenshot text */
+.screenshot-note {
+  text-align:center;
+  color:#777;
+  font-size:12px;
+  margin-top:12px;
+}
+
+/* 🗺️ Map controls fix */
 .leaflet-control-container {
-  z-index: 500 !important;
-}
-
-.bottom-sheet {
-  z-index: 1000 !important;
-}
-
-/* 📸 Screenshot Mode */
-.screenshot-mode {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-
-.screenshot-mode .app > *:not(.bottom-sheet):not(#backBtn) {
-  display:none;
-}
-
-.screenshot-mode #map {
-  display:none !important;
+  z-index: 400 !important;
 }
 </style>
 </head>
@@ -183,7 +183,6 @@ button {
 
 <button onclick="startRide()">Fahrt starten</button>
 <button onclick="resetRide()">Neue Fahrt</button>
-<button onclick="screenshotMode()">📸 Screenshot</button>
 
 <div id="map"></div>
 
@@ -191,9 +190,11 @@ button {
 <div id="bottomSheet" class="bottom-sheet">
   <div class="bottom-handle" onclick="toggleSheet()"></div>
   <div id="summary"></div>
-</div>
 
-<button id="backBtn" style="display:none;" onclick="exitScreenshot()">⬅️ Zurück</button>
+  <div class="screenshot-note">
+    📸 Bitte Screenshot dieser Fahrt machen
+  </div>
+</div>
 
 </div>
 
@@ -210,6 +211,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let selectedDriver="nico";
 let carMarker,routeCoords=[],step=0,timer;
+let sheetOpen=false;
 
 function selectDriver(d,el){
   selectedDriver=d;
@@ -229,7 +231,24 @@ async function geocode(q){
   return d[0];
 }
 
-/* 🚀 MAIN */
+/* 🚀 SHEET CONTROL */
+function openSheet(){
+  document.body.classList.add("sheet-open");
+  document.getElementById("bottomSheet").classList.add("active");
+  sheetOpen=true;
+}
+
+function closeSheet(){
+  document.body.classList.remove("sheet-open");
+  document.getElementById("bottomSheet").classList.remove("active");
+  sheetOpen=false;
+}
+
+function toggleSheet(){
+  sheetOpen ? closeSheet() : openSheet();
+}
+
+/* 🚗 MAIN */
 async function startRide(){
 
   let driver=getDriver();
@@ -267,8 +286,7 @@ async function startRide(){
     🎯 Ziel: ${to}<br><br>
     🚗 ${driver.name} (${driver.car})<br>
     📏 ${dist} km<br>
-    🥤 ${rb} Red Bull<br><br>
-    📸 Screenshot an ${driver.name}
+    🥤 ${rb} Red Bull<br>
   `;
 
   setTimeout(()=>{
@@ -280,7 +298,7 @@ async function startRide(){
 
     startDrive();
 
-    document.getElementById("bottomSheet").classList.add("active");
+    openSheet(); // 🚀 auto open
 
   },1000);
 }
@@ -299,28 +317,11 @@ function startDrive(){
   },250);
 }
 
-/* 🚗 SHEET TOGGLE */
-function toggleSheet(){
-  document.getElementById("bottomSheet").classList.toggle("active");
-}
-
-/* 📸 */
-function screenshotMode(){
-  document.body.classList.add("screenshot-mode");
-  document.getElementById("backBtn").style.display="block";
-}
-
-function exitScreenshot(){
-  document.body.classList.remove("screenshot-mode");
-  document.getElementById("backBtn").style.display="none";
-}
-
 function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";
   document.getElementById("time").value="";
-  document.getElementById("bottomSheet").classList.remove("active");
-  exitScreenshot();
+  closeSheet();
   map.setView([52.3759, 9.7320], 13);
 }
 

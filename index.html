@@ -35,7 +35,6 @@ input, button {
   font-size:15px;
   font-weight:bold;
   cursor:pointer;
-  transition:0.2s;
   box-sizing:border-box;
 }
 
@@ -70,10 +69,49 @@ button:hover {
   font-weight:bold;
   color:#00ff88;
 }
+
+/* 🔥 FULLSCREEN MATCHING */
+.screen {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#000;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  z-index:9999;
+  text-align:center;
+}
+
+.spinner {
+  width:50px;
+  height:50px;
+  border:4px solid #333;
+  border-top:4px solid #00ff88;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin-bottom:15px;
+}
+
+@keyframes spin {
+  100% { transform:rotate(360deg); }
+}
+
+.driverCard {
+  margin-top:20px;
+  background:#1a1a1a;
+  padding:15px;
+  border-radius:12px;
+  width:80%;
+}
 </style>
 </head>
 
 <body>
+
 <div class="app">
 
 <h2>🚗 NicoUber</h2>
@@ -81,6 +119,12 @@ button:hover {
 <input id="name" placeholder="Dein Name">
 <input id="from" placeholder="Startadresse">
 <input id="to" placeholder="Zieladresse">
+
+<!-- 🚘 Fahrer Auswahl -->
+<select id="driver">
+  <option value="nico">Nico (Hyundai i30N)</option>
+  <option value="kevin">Kevin (Mercedes 90k)</option>
+</select>
 
 <button onclick="startRide()">Fahrt starten</button>
 <button onclick="resetRide()">Neue Fahrt beginnen</button>
@@ -91,11 +135,17 @@ button:hover {
 
 </div>
 
+<!-- 🔥 FULLSCREEN SCREEN -->
+<div class="screen" id="screen">
+  <div class="spinner"></div>
+  <h2>Fahrer wird gesucht...</h2>
+
+  <div class="driverCard" id="driverCard"></div>
+</div>
+
 <script>
 
-// 📍 HANNOVER START
 let map = L.map('map').setView([52.3759, 9.7320], 13);
-
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let carMarker;
@@ -109,6 +159,23 @@ function saveName() {
   localStorage.setItem("name", document.getElementById("name").value);
 }
 
+/* 👤 Fahrer Daten */
+function getDriver() {
+  let d = document.getElementById("driver").value;
+
+  if(d === "nico") {
+    return {
+      name: "Nico",
+      car: "Hyundai i30N"
+    };
+  } else {
+    return {
+      name: "Kevin",
+      car: "Mercedes AMG (90k)"
+    };
+  }
+}
+
 async function geocode(q) {
   let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`;
   let res = await fetch(url);
@@ -120,6 +187,8 @@ async function startRide() {
 
   saveName();
 
+  let driver = getDriver();
+
   let name = document.getElementById("name").value;
   let from = document.getElementById("from").value;
   let to = document.getElementById("to").value;
@@ -129,17 +198,17 @@ async function startRide() {
     return;
   }
 
-  updateStatus("🔍 Fahrer wird gesucht...");
+  /* 🔥 FULLSCREEN SHOW */
+  document.getElementById("screen").style.display = "flex";
+
+  document.getElementById("driverCard").innerHTML = `
+    🚗 ${driver.name}<br>
+    🚘 ${driver.car}<br><br>
+    wird zugewiesen...
+  `;
 
   let start = await geocode(from);
   let end = await geocode(to);
-
-  if(!start || !end){
-    alert("Adresse nicht gefunden!");
-    return;
-  }
-
-  setTimeout(() => updateStatus("🚗 Fahrer gefunden!"), 1500);
 
   let routeUrl = `https://router.project-osrm.org/route/v1/driving/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson`;
 
@@ -150,7 +219,6 @@ async function startRide() {
   routeCoords = route.geometry.coordinates.map(c => [c[1], c[0]]);
 
   let distance = (route.distance/1000).toFixed(2);
-
   let redbull = distance > 50 ? 2 : 1;
 
   map.eachLayer(l => {
@@ -160,23 +228,26 @@ async function startRide() {
   let polyline = L.polyline(routeCoords).addTo(map);
   map.fitBounds(polyline.getBounds());
 
+  /* 📸 Dynamische Nachricht */
   document.getElementById("info").innerHTML = `
     👤 ${name}<br>
+    🚗 Fahrer: ${driver.name}<br>
+    🚘 ${driver.car}<br>
     📍 ${distance} km<br>
-    🥤 Preis: ${redbull} Red Bull<br>
-    <div class="status">⏳ Wartet...</div>
+    🥤 ${redbull} Red Bull<br>
+    <div class="status">⏳ Fahrt vorbereitet...</div>
+    <br>
+    📸 Bitte schicken Sie einen Screenshot Ihrer Fahrt<br>
+    👉 ${driver.name} bearbeitet Ihre Anfrage manuell
   `;
 
-  setTimeout(startDrive, 3000);
-}
-
-function updateStatus(text){
-  document.getElementById("info").innerHTML += `<div class="status">${text}</div>`;
+  setTimeout(() => {
+    document.getElementById("screen").style.display = "none";
+    startDrive();
+  }, 2500);
 }
 
 function startDrive(){
-
-  updateStatus("🚗 Fahrer ist unterwegs...");
 
   step = 0;
 
@@ -188,7 +259,7 @@ function startDrive(){
 
     if(step >= routeCoords.length){
       clearInterval(timer);
-      updateStatus("✅ Angekommen!");
+      document.getElementById("info").innerHTML += "<div class='status'>✅ Angekommen!</div>";
       return;
     }
 
@@ -204,6 +275,8 @@ function resetRide() {
   document.getElementById("to").value = "";
   document.getElementById("info").innerHTML = "";
 
+  document.getElementById("screen").style.display = "none";
+
   if(carMarker) map.removeLayer(carMarker);
 
   map.eachLayer(l => {
@@ -216,9 +289,8 @@ function resetRide() {
   step = 0;
 
   map.setView([52.3759, 9.7320], 13);
-
-  updateStatus("🔄 Neue Fahrt gestartet");
 }
+
 </script>
 
 </body>

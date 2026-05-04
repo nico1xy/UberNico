@@ -43,13 +43,11 @@ input {
   color:white;
 }
 
-/* 🔥 GREEN FOCUS */
 input:focus {
   outline:none;
   border:2px solid #00ff88 !important;
 }
 
-/* TIME FIX */
 input[type="time"] {
   height:48px;
   font-size:14px;
@@ -117,11 +115,14 @@ body.sheet-open #map {
   border-top-left-radius:18px;
   border-top-right-radius:18px;
   padding:16px;
-  transform:translateY(100%);
+
+  transform:translateY(calc(100% - 60px)); /* nur Handle sichtbar */
   transition:transform 0.35s ease;
+
   max-height:70vh;
   overflow:auto;
   z-index:1000;
+
   touch-action:none;
 }
 
@@ -139,7 +140,7 @@ body.sheet-open #map {
   cursor:grab;
 }
 
-/* DOCK HANDLE */
+/* DOCK */
 #sheetDock {
   position:fixed;
   bottom:10px;
@@ -203,7 +204,6 @@ body.sheet-open #map {
   <div id="sheetContent"></div>
 </div>
 
-<!-- HANDLE -->
 <div id="sheetDock" onclick="openSheet()"></div>
 
 <!-- LOADING -->
@@ -243,37 +243,45 @@ function openSheet(){
   document.body.classList.add("sheet-open");
   sheet.classList.add("open");
   document.getElementById("sheetDock").style.display="none";
+
+  map.dragging.disable();
+  map.scrollWheelZoom.disable();
+  map.touchZoom.disable();
 }
 
 function closeSheet(){
   document.body.classList.remove("sheet-open");
   sheet.classList.remove("open");
   document.getElementById("sheetDock").style.display="block";
+
+  map.dragging.enable();
+  map.scrollWheelZoom.enable();
+  map.touchZoom.enable();
 }
 
-function toggleSheet(){
-  sheet.classList.contains("open") ? closeSheet() : openSheet();
-}
-
-/* SWIPE */
+/* SWIPE (nur HANDLE) */
+let handle=document.querySelector(".bottom-handle");
 let startY=0,currentY=0,isDragging=false;
 
-sheet.addEventListener("touchstart",(e)=>{
+handle.addEventListener("touchstart",(e)=>{
   startY=e.touches[0].clientY;
   isDragging=true;
 });
 
-sheet.addEventListener("touchmove",(e)=>{
+handle.addEventListener("touchmove",(e)=>{
   if(!isDragging) return;
+
   currentY=e.touches[0].clientY;
   let diff=currentY-startY;
+
   if(diff>0){
     sheet.style.transform=`translateY(${diff}px)`;
   }
 });
 
-sheet.addEventListener("touchend",()=>{
+handle.addEventListener("touchend",()=>{
   isDragging=false;
+
   let diff=currentY-startY;
 
   if(diff>120){
@@ -313,26 +321,26 @@ async function startRide(){
 
   let poly=L.polyline(routeCoords).addTo(map);
 
- document.getElementById("sheetContent").innerHTML=`
-  <div class="receipt">
+  document.getElementById("sheetContent").innerHTML=`
+    <div class="receipt">
 
-    📸 <b>Bitte senden Sie dem Fahrer ${driver.name} einen Screenshot dieser Fahrt über WhatsApp.</b><br><br>
+      📸 Bitte senden Sie dem Fahrer ${driver.name} einen Screenshot dieser Fahrt über WhatsApp.<br><br>
 
-    🚗 <b>NicoUber Fahrtübersicht</b><br><br>
+      🚗 NicoUber Fahrtübersicht<br><br>
 
-    👤 Name: ${name}<br>
-    🕒 Abholzeit: ${time}<br><br>
+      👤 Name: ${name}<br>
+      🕒 Abholzeit: ${time}<br><br>
 
-    📍 Startadresse:<br>${from}<br><br>
+      📍 Startadresse:<br>${from}<br><br>
 
-    🎯 Zieladresse:<br>${to}<br><br>
+      🎯 Zieladresse:<br>${to}<br><br>
 
-    🚘 Fahrer: ${driver.name} (${driver.car})<br>
-    📏 Kilometer: ${dist} km<br>
-    🥤 Bezahlung: ${rb} Red Bull
+      🚘 Fahrer: ${driver.name} (${driver.car})<br>
+      📏 Kilometer: ${dist} km<br>
+      🥤 Bezahlung: ${rb} Red Bull
 
-  </div>
-`;
+    </div>
+  `;
 
   setTimeout(()=>{
 

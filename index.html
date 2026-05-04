@@ -41,7 +41,6 @@ input, button {
 input {
   background:#1c1c1c;
   color:white;
-  cursor:text;
 }
 
 button {
@@ -50,6 +49,15 @@ button {
 
 button:hover {
   transform:scale(1.03);
+}
+
+input:focus {
+  outline:none;
+  border:2px solid #00ff88;
+}
+
+input, button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 #map {
@@ -70,7 +78,7 @@ button:hover {
   color:#00ff88;
 }
 
-/* 🚗 DRIVER UI */
+/* Fahrer Auswahl */
 .title {
   margin-top:15px;
   font-weight:bold;
@@ -88,16 +96,11 @@ button:hover {
   border:2px solid transparent;
 }
 
-.driver:hover {
-  transform:scale(1.02);
-}
-
 .driver.active {
   border:2px solid #00ff88;
-  background:#121212;
 }
 
-/* 🔥 FULLSCREEN */
+/* Fullscreen */
 .screen {
   position:fixed;
   top:0;
@@ -110,7 +113,6 @@ button:hover {
   align-items:center;
   flex-direction:column;
   z-index:9999;
-  text-align:center;
 }
 
 .spinner {
@@ -147,29 +149,27 @@ button:hover {
 <input id="from" placeholder="Startadresse">
 <input id="to" placeholder="Zieladresse">
 
-<!-- 🚗 Fahrer Auswahl -->
+<!-- 🕒 Abholzeit -->
+<input type="time" id="time">
+
 <div class="title">Bitte wählen Sie Ihren Fahrer</div>
 
 <div class="driver active" onclick="selectDriver('nico', this)">
-  🚗 Nico<br>
-  <small>Hyundai i30N</small>
+  🚗 Nico<br><small>Hyundai i30N</small>
 </div>
 
 <div class="driver" onclick="selectDriver('kevin', this)">
-  🚘 Kevin<br>
-  <small>Mercedes AMG (90k)</small>
+  🚘 Kevin<br><small>Mercedes AMG (90k)</small>
 </div>
 
 <button onclick="startRide()">Fahrt starten</button>
 <button onclick="resetRide()">Neue Fahrt beginnen</button>
 
 <div id="map"></div>
-
 <div class="card" id="info"></div>
 
 </div>
 
-<!-- 🔥 FULLSCREEN -->
 <div class="screen" id="screen">
   <div class="spinner"></div>
   <h2>Fahrer wird gesucht...</h2>
@@ -186,9 +186,6 @@ let routeCoords = [];
 let step = 0;
 let timer;
 
-document.getElementById("name").value = localStorage.getItem("name") || "";
-
-/* 👤 Fahrer Auswahl */
 let selectedDriver = "nico";
 
 function selectDriver(driver, el) {
@@ -203,20 +200,9 @@ function selectDriver(driver, el) {
 
 function getDriver() {
   if(selectedDriver === "nico") {
-    return {
-      name: "Nico",
-      car: "Hyundai i30N"
-    };
+    return { name:"Nico", car:"Hyundai i30N" };
   }
-
-  return {
-    name: "Kevin",
-    car: "Mercedes AMG (90k)"
-  };
-}
-
-function saveName() {
-  localStorage.setItem("name", document.getElementById("name").value);
+  return { name:"Kevin", car:"Mercedes AMG (90k)" };
 }
 
 async function geocode(q) {
@@ -228,13 +214,12 @@ async function geocode(q) {
 
 async function startRide() {
 
-  saveName();
-
   let driver = getDriver();
 
   let name = document.getElementById("name").value;
   let from = document.getElementById("from").value;
   let to = document.getElementById("to").value;
+  let time = document.getElementById("time").value || "sofort";
 
   if(!name || !from || !to){
     alert("Alles ausfüllen!");
@@ -272,14 +257,14 @@ async function startRide() {
 
   document.getElementById("info").innerHTML = `
     👤 ${name}<br>
+    🕒 Abholung: ${time}<br>
     🚗 Fahrer: ${driver.name}<br>
     🚘 ${driver.car}<br>
     📍 ${distance} km<br>
     🥤 ${redbull} Red Bull<br>
     <div class="status">⏳ Fahrt vorbereitet...</div>
     <br>
-    📸 Bitte schicken Sie einen Screenshot Ihrer Fahrt<br>
-    👉 ${driver.name} bearbeitet Ihre Anfrage
+    📸 Bitte schicken Sie einen Screenshot Ihrer Fahrt an ${driver.name}
   `;
 
   setTimeout(() => {
@@ -314,6 +299,7 @@ function resetRide() {
 
   document.getElementById("from").value = "";
   document.getElementById("to").value = "";
+  document.getElementById("time").value = "";
   document.getElementById("info").innerHTML = "";
 
   document.getElementById("screen").style.display = "none";

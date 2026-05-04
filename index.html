@@ -46,10 +46,8 @@ input:focus {
   border:2px solid #00ff88 !important;
 }
 
-/* ⏰ TIME WRAPPER */
-.field {
-  margin-top:10px;
-}
+/* TIME */
+.field { margin-top:10px; }
 
 .label {
   font-size:12px;
@@ -58,11 +56,9 @@ input:focus {
   padding-left:2px;
 }
 
-/* TIME INPUT CLEAN */
 input[type="time"] {
   width:100%;
   padding:14px;
-  margin:10px 0 0 0;
   border:none;
   border-radius:12px;
   font-size:15px;
@@ -70,7 +66,6 @@ input[type="time"] {
   color:white;
   box-sizing:border-box;
   height:48px;
-  appearance:none;
   -webkit-appearance:none;
 }
 
@@ -173,7 +168,7 @@ body.sheet-open #map {
   z-index:400 !important;
 }
 
-/* 🚗 LOADING */
+/* LOADING */
 .screen {
   position:fixed;
   inset:0;
@@ -197,6 +192,55 @@ body.sheet-open #map {
 
 @keyframes spin {
   100% { transform:rotate(360deg); }
+}
+
+/* 💸 PAYMENT CONFIRMED */
+.payment {
+  position:fixed;
+  left:50%;
+  top:45%;
+  transform:translate(-50%,-50%) scale(0.8);
+  background:#0f0f0f;
+  border:1px solid #00ff88;
+  padding:18px 22px;
+  border-radius:14px;
+  text-align:center;
+  z-index:10000;
+  opacity:0;
+  transition:0.35s ease;
+  pointer-events:none;
+}
+
+.payment.show {
+  opacity:1;
+  transform:translate(-50%,-50%) scale(1);
+}
+
+.payment-check {
+  font-size:30px;
+  color:#00ff88;
+  margin-bottom:6px;
+}
+
+/* 🥤 RED BULL FLY */
+.rb-fly {
+  position:fixed;
+  left:50%;
+  top:60%;
+  transform:translate(-50%,0);
+  font-size:28px;
+  opacity:0;
+  z-index:10001;
+}
+
+.rb-fly.animate {
+  animation:flyRB 1.2s ease forwards;
+}
+
+@keyframes flyRB {
+  0%   { transform:translate(-50%,20px) scale(0.8); opacity:0; }
+  20%  { opacity:1; }
+  100% { transform:translate(-50%,-120px) scale(1.2); opacity:0; }
 }
 </style>
 </head>
@@ -247,6 +291,18 @@ body.sheet-open #map {
   <h3>🚗 Fahrer wird informiert...</h3>
 </div>
 
+<!-- 💸 PAYMENT -->
+<div id="payment" class="payment">
+  <div class="payment-check">✔</div>
+  <div>Zahlung bestätigt</div>
+  <div style="font-size:12px;color:#aaa;margin-top:4px;">
+    Red Bull wurde übergeben
+  </div>
+</div>
+
+<!-- 🥤 FLY -->
+<div id="rbFly" class="rb-fly">🥤</div>
+
 <script>
 
 let map = L.map('map').setView([52.3759, 9.7320], 13);
@@ -286,9 +342,11 @@ function openSheet(){
 
   map.dragging.disable();
   map.scrollWheelZoom.disable();
-  map.touchZoom.disable();
-
   isOpen=true;
+}
+
+function toggleSheet(){
+  isOpen ? closeSheet() : openSheet();
 }
 
 function closeSheet(){
@@ -298,13 +356,21 @@ function closeSheet(){
 
   map.dragging.enable();
   map.scrollWheelZoom.enable();
-  map.touchZoom.enable();
-
   isOpen=false;
 }
 
-function toggleSheet(){
-  isOpen ? closeSheet() : openSheet();
+/* 💸 ANIMATION */
+function showPayment(){
+  let p=document.getElementById("payment");
+  let rb=document.getElementById("rbFly");
+
+  p.classList.add("show");
+  rb.classList.add("animate");
+
+  setTimeout(()=>{
+    p.classList.remove("show");
+    rb.classList.remove("animate");
+  },1200);
 }
 
 /* MAIN */
@@ -322,62 +388,47 @@ async function startRide(){
     return;
   }
 
-  // 🚗 LOADING START
   document.getElementById("screen").style.display="flex";
 
-  try {
+  let s=await geocode(from);
+  let e=await geocode(to);
 
-    let s=await geocode(from);
-    let e=await geocode(to);
+  let res=await fetch(`https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`);
+  let data=await res.json();
 
-    if(!s || !e) throw new Error("Geocode failed");
+  routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+  let poly=L.polyline(routeCoords).addTo(map);
 
-    let res=await fetch(`https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`);
-    let data=await res.json();
+  let dist=(data.routes[0].distance/1000).toFixed(2);
+  let rb=dist>50?2:1;
 
-    if(!data.routes || !data.routes[0]) throw new Error("Route failed");
+  setTimeout(()=>{
 
-    routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
-
-    let dist=(data.routes[0].distance/1000).toFixed(2);
-    let rb=dist>50?2:1;
-
-    let poly=L.polyline(routeCoords).addTo(map);
-
-    // ⏱ 1 SEKUNDE FAKE LOADING
-    setTimeout(()=>{
-
-      document.getElementById("screen").style.display="none";
-
-      map.fitBounds(poly.getBounds());
-      startDrive();
-      openSheet();
-
-      document.getElementById("sheetContent").innerHTML=`
-        <div class="receipt">
-
-          📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
-
-          👤 Name: ${name}<br>
-          🕒 Abholzeit: ${time}<br><br>
-
-          📍 Start: ${from}<br>
-          🎯 Ziel: ${to}<br><br>
-
-          🚘 Fahrer: ${driver.name} (${driver.car})<br>
-          📏 Kilometer: ${dist} km<br>
-          🥤 Bezahlung: ${rb} Red Bull
-
-        </div>
-      `;
-
-    },1000);
-
-  } catch(err){
-    console.log(err);
     document.getElementById("screen").style.display="none";
-    alert("Fehler beim Laden 😅");
-  }
+
+    map.fitBounds(poly.getBounds());
+    startDrive();
+    openSheet();
+
+    showPayment();
+
+    document.getElementById("sheetContent").innerHTML=`
+      <div class="receipt">
+        📸 Screenshot an ${driver.name}<br><br>
+
+        👤 Name: ${name}<br>
+        🕒 ${time}<br><br>
+
+        📍 Start: ${from}<br>
+        🎯 Ziel: ${to}<br><br>
+
+        🚘 ${driver.name} (${driver.car})<br>
+        📏 ${dist} km<br>
+        🥤 ${rb} Red Bull
+      </div>
+    `;
+
+  },1000);
 }
 
 /* DRIVE */

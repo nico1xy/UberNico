@@ -26,6 +26,7 @@ h2 {
   text-align:center;
 }
 
+/* Inputs & Buttons */
 input, button {
   width:100%;
   padding:14px;
@@ -98,7 +99,7 @@ input:focus {
   border:2px solid #00ff88;
 }
 
-/* SCREEN */
+/* LOADING SCREEN */
 .screen {
   position:fixed;
   top:0;
@@ -184,116 +185,138 @@ input:focus {
 let map = L.map('map').setView([52.3759, 9.7320], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-let selectedDriver="nico";
-let carMarker,routeCoords=[],step=0,timer;
+let selectedDriver = "nico";
+let carMarker, routeCoords = [], step = 0, timer;
 
-function selectDriver(d,el){
-  selectedDriver=d;
-  document.querySelectorAll(".driver").forEach(x=>x.classList.remove("active"));
+function selectDriver(d, el) {
+  selectedDriver = d;
+  document.querySelectorAll(".driver").forEach(x => x.classList.remove("active"));
   el.classList.add("active");
 }
 
-function getDriver(){
-  return selectedDriver==="nico"
-    ? {name:"Nico",car:"Hyundai i30N"}
-    : {name:"Kevin",car:"Mercedes AMG"};
+function getDriver() {
+  return selectedDriver === "nico"
+    ? { name: "Nico", car: "Hyundai i30N" }
+    : { name: "Kevin", car: "Mercedes AMG" };
 }
 
-async function geocode(q){
-  let r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
-  let d=await r.json();
+async function geocode(q) {
+  let r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+  let d = await r.json();
   return d[0];
 }
 
-async function startRide(){
+/* 🚀 FIXED LOADING FLOW */
+async function startRide() {
 
-  let driver=getDriver();
+  let driver = getDriver();
 
-  let name=document.getElementById("name").value;
-  let from=document.getElementById("from").value;
-  let to=document.getElementById("to").value;
-  let time=document.getElementById("time").value||"sofort";
+  let name = document.getElementById("name").value;
+  let from = document.getElementById("from").value;
+  let to = document.getElementById("to").value;
+  let time = document.getElementById("time").value || "sofort";
 
-  if(!name||!from||!to){
+  if (!name || !from || !to) {
     alert("Alles ausfüllen!");
     return;
   }
 
   document.getElementById("map").classList.add("hidden");
-  document.getElementById("screen").style.display="flex";
+  document.getElementById("screen").style.display = "flex";
 
-  let s=await geocode(from);
-  let e=await geocode(to);
+  /* 🔄 Route parallel laden */
+  let routePromise = (async () => {
 
-  let res=await fetch(`https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`);
-  let data=await res.json();
+    let s = await geocode(from);
+    let e = await geocode(to);
 
-  routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+    let res = await fetch(`https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`);
+    let data = await res.json();
 
-  let dist=(data.routes[0].distance/1000).toFixed(2);
-  let rb=dist>50?2:1;
+    let route = data.routes[0];
+    routeCoords = route.geometry.coordinates.map(c => [c[1], c[0]]);
 
-  let poly=L.polyline(routeCoords).addTo(map);
+    let dist = (route.distance / 1000).toFixed(2);
+    let rb = dist > 50 ? 2 : 1;
 
-  document.getElementById("summary").style.display="block";
-  document.getElementById("summary").innerHTML=`
-    📋 <b>Fahrt Zusammenfassung</b><br><br>
-    👤 ${name}<br>
-    🕒 ${time}<br>
-    📍 ${from}<br>
-    ➡️ ${to}<br>
-    🚗 ${driver.name} (${driver.car})<br>
-    📏 ${dist} km<br>
-    🥤 ${rb} Red Bull<br><br>
-    📸 Bitte Screenshot an ${driver.name} schicken
-  `;
+    return { dist, rb };
+  })();
 
-  setTimeout(()=>{
+  /* ⏱️ FIX: immer 2 Sekunden Loading */
+  setTimeout(async () => {
 
-    document.getElementById("screen").style.display="none";
+    let result = await routePromise;
 
-    setTimeout(()=>{
+    if (!result) {
+      alert("Fehler bei Route");
+      document.getElementById("screen").style.display = "none";
+      return;
+    }
+
+    let { dist, rb } = result;
+
+    let poly = L.polyline(routeCoords).addTo(map);
+
+    document.getElementById("summary").style.display = "block";
+    document.getElementById("summary").innerHTML = `
+      📋 <b>Fahrt Zusammenfassung</b><br><br>
+      👤 ${name}<br>
+      🕒 ${time}<br>
+      🚗 ${driver.name} (${driver.car})<br>
+      📏 ${dist} km<br>
+      🥤 ${rb} Red Bull<br><br>
+      📸 Screenshot an ${driver.name}
+    `;
+
+    document.getElementById("screen").style.display = "none";
+
+    setTimeout(() => {
       document.getElementById("map").classList.remove("hidden");
       map.invalidateSize();
-      map.fitBounds(poly.getBounds(), {animate:true,duration:1.2});
-      startDrive();
-    },200);
+      map.fitBounds(poly.getBounds(), {
+        animate: true,
+        duration: 1.2
+      });
 
-  },900); // ⚡ schneller
+      startDrive();
+
+    }, 200);
+
+  }, 2000);
 }
 
-function startDrive(){
-  step=0;
-  carMarker=L.marker(routeCoords[0]).addTo(map);
+function startDrive() {
+  step = 0;
+  carMarker = L.marker(routeCoords[0]).addTo(map);
 
-  timer=setInterval(()=>{
-    if(step>=routeCoords.length){
+  timer = setInterval(() => {
+    if (step >= routeCoords.length) {
       clearInterval(timer);
       return;
     }
     carMarker.setLatLng(routeCoords[step]);
     step++;
-  },250);
+  }, 250);
 }
 
 /* 📸 Screenshot Mode */
-function screenshotMode(){
+function screenshotMode() {
   document.body.classList.add("screenshot-mode");
-  document.getElementById("backBtn").style.display="block";
+  document.getElementById("backBtn").style.display = "block";
 }
 
-function exitScreenshot(){
+function exitScreenshot() {
   document.body.classList.remove("screenshot-mode");
-  document.getElementById("backBtn").style.display="none";
+  document.getElementById("backBtn").style.display = "none";
 }
 
-function resetRide(){
-  document.getElementById("from").value="";
-  document.getElementById("to").value="";
-  document.getElementById("time").value="";
-  document.getElementById("summary").style.display="none";
+function resetRide() {
+  document.getElementById("from").value = "";
+  document.getElementById("to").value = "";
+  document.getElementById("time").value = "";
+  document.getElementById("summary").style.display = "none";
   exitScreenshot();
-  map.setView([52.3759,9.7320],13);
+  map.setView([52.3759, 9.7320], 13);
 }
 
 </script>

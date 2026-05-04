@@ -70,7 +70,6 @@ input[type="time"] {
   color:white;
   box-sizing:border-box;
   height:48px;
-  line-height:normal;
   appearance:none;
   -webkit-appearance:none;
 }
@@ -138,7 +137,6 @@ body.sheet-open #map {
   transform:translateY(0%);
 }
 
-/* HANDLE */
 .bottom-handle {
   width:50px;
   height:5px;
@@ -148,7 +146,6 @@ body.sheet-open #map {
   cursor:pointer;
 }
 
-/* DOCK */
 #sheetDock {
   position:fixed;
   bottom:10px;
@@ -175,6 +172,32 @@ body.sheet-open #map {
 .leaflet-control-container {
   z-index:400 !important;
 }
+
+/* 🚗 LOADING */
+.screen {
+  position:fixed;
+  inset:0;
+  background:#000;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  z-index:9999;
+}
+
+.spinner {
+  width:50px;
+  height:50px;
+  border:4px solid #333;
+  border-top:4px solid #00ff88;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin-bottom:10px;
+}
+
+@keyframes spin {
+  100% { transform:rotate(360deg); }
+}
 </style>
 </head>
 
@@ -188,7 +211,6 @@ body.sheet-open #map {
 <input id="from" placeholder="Startadresse">
 <input id="to" placeholder="Zieladresse">
 
-<!-- ⏰ TIME FIELD CLEAN -->
 <div class="field">
   <div class="label">⏰ Uhrzeit wählen</div>
   <input type="time" id="time">
@@ -218,6 +240,12 @@ body.sheet-open #map {
 </div>
 
 <div id="sheetDock" onclick="toggleSheet()"></div>
+
+<!-- LOADING -->
+<div class="screen" id="screen">
+  <div class="spinner"></div>
+  <h3>🚗 Fahrer wird informiert...</h3>
+</div>
 
 <script>
 
@@ -294,40 +322,62 @@ async function startRide(){
     return;
   }
 
-  let s=await geocode(from);
-  let e=await geocode(to);
+  // 🚗 LOADING START
+  document.getElementById("screen").style.display="flex";
 
-  let res=await fetch(`https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`);
-  let data=await res.json();
+  try {
 
-  routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+    let s=await geocode(from);
+    let e=await geocode(to);
 
-  let dist=(data.routes[0].distance/1000).toFixed(2);
-  let rb=dist>50?2:1;
+    if(!s || !e) throw new Error("Geocode failed");
 
-  let poly=L.polyline(routeCoords).addTo(map);
+    let res=await fetch(`https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`);
+    let data=await res.json();
 
-  map.fitBounds(poly.getBounds());
-  startDrive();
-  openSheet();
+    if(!data.routes || !data.routes[0]) throw new Error("Route failed");
 
-  document.getElementById("sheetContent").innerHTML=`
-    <div class="receipt">
+    routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
 
-      📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
+    let dist=(data.routes[0].distance/1000).toFixed(2);
+    let rb=dist>50?2:1;
 
-      👤 Name: ${name}<br>
-      🕒 Abholzeit: ${time}<br><br>
+    let poly=L.polyline(routeCoords).addTo(map);
 
-      📍 Start: ${from}<br>
-      🎯 Ziel: ${to}<br><br>
+    // ⏱ 1 SEKUNDE FAKE LOADING
+    setTimeout(()=>{
 
-      🚘 Fahrer: ${driver.name} (${driver.car})<br>
-      📏 Kilometer: ${dist} km<br>
-      🥤 Bezahlung: ${rb} Red Bull
+      document.getElementById("screen").style.display="none";
 
-    </div>
-  `;
+      map.fitBounds(poly.getBounds());
+      startDrive();
+      openSheet();
+
+      document.getElementById("sheetContent").innerHTML=`
+        <div class="receipt">
+
+          📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
+
+          👤 Name: ${name}<br>
+          🕒 Abholzeit: ${time}<br><br>
+
+          📍 Start: ${from}<br>
+          🎯 Ziel: ${to}<br><br>
+
+          🚘 Fahrer: ${driver.name} (${driver.car})<br>
+          📏 Kilometer: ${dist} km<br>
+          🥤 Bezahlung: ${rb} Red Bull
+
+        </div>
+      `;
+
+    },1000);
+
+  } catch(err){
+    console.log(err);
+    document.getElementById("screen").style.display="none";
+    alert("Fehler beim Laden 😅");
+  }
 }
 
 /* DRIVE */

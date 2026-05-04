@@ -275,17 +275,34 @@ async function startRide(){
 
   let poly=L.polyline(routeCoords).addTo(map);
 
-  document.getElementById("sheetContent").innerHTML=`
-    <div class="receipt">
-      <b>🚗 NicoUber Receipt</b><br><br>
-      👤 ${name}<br>
-      🕒 ${time}<br><br>
-      📍 Start: ${from}<br>
-      🎯 Ziel: ${to}<br><br>
-      🚗 ${driver.name} (${driver.car})<br>
-      📏 ${dist} km<br>
-    </div>
-  `;
+  document.getElementById("sheetContent").innerHTML = `
+  <div class="receipt">
+
+    <b>🚗 NicoUber Fahrtübersicht</b><br><br>
+
+    👤 <b>Name:</b><br>
+    ${name}<br><br>
+
+    🕒 <b>Abholzeit:</b><br>
+    ${time}<br><br>
+
+    📍 <b>Startadresse:</b><br>
+    <span style="color:#aaa">${from}</span><br><br>
+
+    🎯 <b>Zieladresse:</b><br>
+    <span style="color:#aaa">${to}</span><br><br>
+
+    🚘 <b>Fahrer:</b><br>
+    ${driver.name} (${driver.car})<br><br>
+
+    📏 <b>Kilometer:</b><br>
+    ${dist} km<br><br>
+
+    🥤 <b>Bezahlung:</b><br>
+    ${dist > 50 ? "2 Red Bull 🥤🥤" : "1 Red Bull 🥤"}
+
+  </div>
+`;
 
   setTimeout(()=>{
 

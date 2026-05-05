@@ -364,10 +364,12 @@ async function geocode(q){
 
   if(!d.features || d.features.length === 0) return null;
 
-  // 🔥 bestes Ergebnis suchen (nicht einfach erstes)
+  // 🔥 safe best match
   let best = d.features.find(f =>
-    f.properties.housenumber
+    f.properties && f.properties.housenumber
   ) || d.features[0];
+
+  if(!best || !best.geometry) return null;
 
   return {
     lat: best.geometry.coordinates[1],

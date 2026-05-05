@@ -7,6 +7,7 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
 body {
@@ -431,6 +432,15 @@ async function startRide(){
 ">
 📋 Inhalt Kopieren
 </button>
+
+<button onclick="shareReceiptImage()" style="
+  margin-top:10px;
+  background:#00ff88;
+  color:#000;
+  border:none;
+">
+Bild teilen
+</button>
 `;
 
     },1000);
@@ -483,6 +493,45 @@ function copyReceipt() {
     .catch(() => {
       alert("Kopieren hat nicht funktioniert 😅");
     });
+}
+
+  async function shareReceiptImage() {
+  const element = document.getElementById("receiptText");
+
+  if (!element) {
+    alert("Keine Summary gefunden 😅");
+    return;
+  }
+
+  try {
+    const canvas = await html2canvas(element, {
+      backgroundColor: "#0f0f0f",
+      scale: 2
+    });
+
+    const image = canvas.toDataURL("image/png");
+
+    if (navigator.share) {
+      const blob = await (await fetch(image)).blob();
+      const file = new File([blob], "nico-uber.png", { type: "image/png" });
+
+      await navigator.share({
+        files: [file],
+        title: "NicoUber Fahrt",
+        text: "Meine Fahrtzusammenfassung 🚗"
+      });
+
+    } else {
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = "nico-uber-fahrt.png";
+      link.click();
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("Bild konnte nicht erstellt werden 😅");
+  }
 }
   
 </script>

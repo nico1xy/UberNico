@@ -569,6 +569,12 @@ function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";
   document.getElementById("time").value="";
+  document.getElementById("date").value="";
+
+  // 👉 WICHTIG: Vorschläge löschen
+  document.getElementById("fromSuggestions").innerHTML="";
+  document.getElementById("toSuggestions").innerHTML="";
+
   closeSheet();
   map.setView([52.3759,9.7320],13);
 }

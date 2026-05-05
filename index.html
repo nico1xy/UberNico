@@ -24,7 +24,6 @@ body {
 
 h2 { text-align:center; }
 
-/* INPUTS */
 input, button {
   width:100%;
   padding:14px;
@@ -46,7 +45,6 @@ input:focus {
   border:2px solid #00ff88 !important;
 }
 
-/* TIME */
 .field { margin-top:10px; }
 
 .label {
@@ -56,7 +54,7 @@ input:focus {
   padding-left:2px;
 }
 
-input[type="time"] {
+input[type="time"], input[type="date"] {
   width:100%;
   padding:14px;
   border:none;
@@ -69,21 +67,18 @@ input[type="time"] {
   -webkit-appearance:none;
 }
 
-/* BUTTON */
 button {
   background:#00ff88;
   cursor:pointer;
   color:#000;
 }
 
-/* MAP */
 #map {
   height:300px;
   margin-top:15px;
   border-radius:12px;
 }
 
-/* DRIVER */
 .title {
   margin-top:15px;
   text-align:center;
@@ -103,13 +98,11 @@ button {
   border:2px solid #00ff88;
 }
 
-/* BLUR */
 body.sheet-open .app,
 body.sheet-open #map {
   filter: blur(6px);
 }
 
-/* SHEET */
 .bottom-sheet {
   position:fixed;
   left:0;
@@ -119,10 +112,8 @@ body.sheet-open #map {
   border-top-left-radius:18px;
   border-top-right-radius:18px;
   padding:16px;
-
   transform:translateY(100%);
   transition:transform 0.35s ease;
-
   max-height:70vh;
   overflow:auto;
   z-index:1000;
@@ -154,7 +145,6 @@ body.sheet-open #map {
   cursor:pointer;
 }
 
-/* RECEIPT */
 .receipt {
   background:#0f0f0f;
   padding:16px;
@@ -163,12 +153,10 @@ body.sheet-open #map {
   line-height:1.5;
 }
 
-/* MAP FIX */
 .leaflet-control-container {
   z-index:400 !important;
 }
 
-/* LOADING */
 .screen {
   position:fixed;
   inset:0;
@@ -194,7 +182,6 @@ body.sheet-open #map {
   100% { transform:rotate(360deg); }
 }
 
-/* 💸 PAYMENT CONFIRMED */
 .payment {
   position:fixed;
   left:50%;
@@ -222,7 +209,6 @@ body.sheet-open #map {
   margin-bottom:6px;
 }
 
-/* 🥤 RED BULL FLY */
 .rb-fly {
   position:fixed;
   left:50%;
@@ -238,8 +224,8 @@ body.sheet-open #map {
 }
 
 @keyframes flyRB {
-  0%   { transform:translate(-50%,20px) scale(0.8); opacity:0; }
-  20%  { opacity:1; }
+  0% { transform:translate(-50%,20px) scale(0.8); opacity:0; }
+  20% { opacity:1; }
   100% { transform:translate(-50%,-120px) scale(1.2); opacity:0; }
 }
 </style>
@@ -252,8 +238,13 @@ body.sheet-open #map {
 <h2>🚗 NicoUber</h2>
 
 <input id="name" placeholder="Dein Name">
-<input id="from" placeholder="Startadresse">
+<input id="from" placeholder="Abholadresse">
 <input id="to" placeholder="Zieladresse">
+
+<div class="field">
+  <div class="label">📅 Datum wählen</div>
+  <input type="date" id="date">
+</div>
 
 <div class="field">
   <div class="label">⏰ Uhrzeit wählen</div>
@@ -277,7 +268,6 @@ body.sheet-open #map {
 
 </div>
 
-<!-- SHEET -->
 <div id="bottomSheet" class="bottom-sheet">
   <div class="bottom-handle" onclick="toggleSheet()"></div>
   <div id="sheetContent"></div>
@@ -285,13 +275,11 @@ body.sheet-open #map {
 
 <div id="sheetDock" onclick="toggleSheet()"></div>
 
-<!-- LOADING -->
 <div class="screen" id="screen">
   <div class="spinner"></div>
   <h3>🚗 Fahrer wird informiert...</h3>
 </div>
 
-<!-- 💸 PAYMENT -->
 <div id="payment" class="payment">
   <div class="payment-check">✔</div>
   <div>Zahlung bestätigt</div>
@@ -300,7 +288,6 @@ body.sheet-open #map {
   </div>
 </div>
 
-<!-- 🥤 FLY -->
 <div id="rbFly" class="rb-fly">🥤</div>
 
 <script>
@@ -310,11 +297,9 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let selectedDriver="nico";
 let routeCoords=[],carMarker,step=0,timer;
-
 let sheet=document.getElementById("bottomSheet");
 let isOpen=false;
 
-/* DRIVER */
 function selectDriver(d,el){
   selectedDriver=d;
   document.querySelectorAll(".driver").forEach(x=>x.classList.remove("active"));
@@ -327,19 +312,16 @@ function getDriver(){
     : {name:"Kevin",car:"90k Mercedes"};
 }
 
-/* GEOCODE */
 async function geocode(q){
   let r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
   let d=await r.json();
   return d[0];
 }
 
-/* SHEET */
 function openSheet(){
   document.body.classList.add("sheet-open");
   sheet.classList.add("open");
   document.getElementById("sheetDock").style.display="none";
-
   map.dragging.disable();
   map.scrollWheelZoom.disable();
   isOpen=true;
@@ -353,13 +335,11 @@ function closeSheet(){
   document.body.classList.remove("sheet-open");
   sheet.classList.remove("open");
   document.getElementById("sheetDock").style.display="block";
-
   map.dragging.enable();
   map.scrollWheelZoom.enable();
   isOpen=false;
 }
 
-/* 💸 ANIMATION */
 function showPayment(){
   let p=document.getElementById("payment");
   let rb=document.getElementById("rbFly");
@@ -373,7 +353,6 @@ function showPayment(){
   },1200);
 }
 
-/* MAIN */
 async function startRide(){
 
   let driver=getDriver();
@@ -382,6 +361,7 @@ async function startRide(){
   let from=document.getElementById("from").value;
   let to=document.getElementById("to").value;
   let time=document.getElementById("time").value||"sofort";
+  let date=document.getElementById("date").value||"heute";
 
   if(!name||!from||!to){
     alert("Alles ausfüllen!");
@@ -390,40 +370,34 @@ async function startRide(){
 
   document.getElementById("screen").style.display="flex";
 
-  let forceExit = setTimeout(()=>{
+  let forceExit=setTimeout(()=>{
     document.getElementById("screen").style.display="none";
-  }, 2500); // 💡 HARTE ABSICHERUNG
+  },2500);
 
   try {
 
-    let s = await geocode(from);
-    let e = await geocode(to);
+    let s=await geocode(from);
+    let e=await geocode(to);
 
-    // ❗ Fallback wenn Geocode fail
-    if(!s || !e){
-      throw new Error("Geocode failed");
-    }
+    if(!s||!e) throw new Error();
 
-    let res = await fetch(
+    let res=await fetch(
       `https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`
     );
 
-    let data = await res.json();
+    let data=await res.json();
 
-    if(!data.routes || !data.routes[0]){
-      throw new Error("Route failed");
-    }
+    if(!data.routes||!data.routes[0]) throw new Error();
 
-    routeCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-    let poly = L.polyline(routeCoords).addTo(map);
+    routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+    let poly=L.polyline(routeCoords).addTo(map);
 
-    let dist = (data.routes[0].distance / 1000).toFixed(2);
-    let rb = dist > 50 ? 2 : 1;
+    let dist=(data.routes[0].distance/1000).toFixed(2);
+    let rb=dist>50?2:1;
 
-    // ⏱ Fake Loading stabil (immer 1 Sekunde)
     setTimeout(()=>{
 
-      clearTimeout(forceExit); // stop safety timer
+      clearTimeout(forceExit);
       document.getElementById("screen").style.display="none";
 
       map.fitBounds(poly.getBounds());
@@ -431,37 +405,32 @@ async function startRide(){
       openSheet();
       showPayment();
 
-      document.getElementById("sheetContent").innerHTML=`
-        <div class="receipt">
-          📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
+     document.getElementById("sheetContent").innerHTML=`
+    <div class="receipt">
+    📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
 
-          👤 Name: ${name}<br>
-          🕒 Abholzeit: ${time}<br><br>
+    👤 Name: ${name}<br>
+    📅 Datum: ${date}<br>
+    🕒 Abholzeit: ${time}<br><br>
 
-          📍 Start: ${from}<br>
-          🎯 Ziel: ${to}<br><br>
+    📍 Start: ${from}<br>
+    🎯 Ziel: ${to}<br><br>
 
-          🚘 Fahrer: ${driver.name} (${driver.car})<br>
-          📏 Kilometer: ${dist} km<br>
-          🥤 Bezahlung: ${rb} Red Bull
-        </div>
-      `;
+    🚘 Fahrer: ${driver.name} (${driver.car})<br>
+    📏 Kilometer: ${dist} km<br>
+    🥤 Bezahlung: ${rb} Red Bull
+  </div>
+`;
 
-    }, 1000);
+    },1000);
 
   } catch(err){
-
-    console.log("ERROR:", err);
-
-    // ❗ IMMER STOPPEN
     clearTimeout(forceExit);
     document.getElementById("screen").style.display="none";
-
     alert("Route konnte nicht geladen werden 😅");
   }
 }
 
-/* DRIVE */
 function startDrive(){
   step=0;
   carMarker=L.marker(routeCoords[0]).addTo(map);
@@ -476,11 +445,11 @@ function startDrive(){
   },250);
 }
 
-/* RESET */
 function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";
   document.getElementById("time").value="";
+  document.getElementById("date").value="";
   closeSheet();
   map.setView([52.3759,9.7320],13);
 }

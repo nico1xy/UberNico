@@ -359,9 +359,17 @@ function getDriver(){
 
 /* GEOCODE */
 async function geocode(q){
-  let r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
-  let d=await r.json();
-  return d[0];
+  let r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`);
+  let d = await r.json();
+
+  if(!d.features || d.features.length === 0) return null;
+
+  let p = d.features[0];
+
+  return {
+    lat: p.geometry.coordinates[1],
+    lon: p.geometry.coordinates[0]
+  };
 }
 
 /* ===== ADDED: AUTOCOMPLETE ===== */

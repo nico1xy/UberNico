@@ -579,6 +579,33 @@ function resetRide(){
   map.setView([52.3759,9.7320],13);
 }
 
+  document.getElementById("from").addEventListener("blur", () => {
+  setTimeout(() => {
+    document.getElementById("fromSuggestions").innerHTML = "";
+  }, 150);
+});
+
+document.getElementById("to").addEventListener("blur", () => {
+  setTimeout(() => {
+    document.getElementById("toSuggestions").innerHTML = "";
+  }, 150);
+});
+
+  document.addEventListener("click", (e) => {
+  const fromBox = document.getElementById("fromSuggestions");
+  const toBox = document.getElementById("toSuggestions");
+
+  if (!document.getElementById("from").contains(e.target) &&
+      !fromBox.contains(e.target)) {
+    fromBox.innerHTML = "";
+  }
+
+  if (!document.getElementById("to").contains(e.target) &&
+      !toBox.contains(e.target)) {
+    toBox.innerHTML = "";
+  }
+});
+
 </script>
 
 </body>

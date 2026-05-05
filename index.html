@@ -242,26 +242,6 @@ body.sheet-open #map {
   20%  { opacity:1; }
   100% { transform:translate(-50%,-120px) scale(1.2); opacity:0; }
 }
-
-/* ===== ADDED: AUTOCOMPLETE ===== */
-.suggestions {
-  background:#1a1a1a;
-  border-radius:10px;
-  margin-top:5px;
-  overflow:hidden;
-}
-
-.suggestion-item {
-  padding:10px;
-  cursor:pointer;
-  border-bottom:1px solid #2a2a2a;
-  font-size:13px;
-}
-
-.suggestion-item:hover {
-  background:#00ff88;
-  color:black;
-}
 </style>
 </head>
 
@@ -272,18 +252,8 @@ body.sheet-open #map {
 <h2>🚗 NicoUber</h2>
 
 <input id="name" placeholder="Dein Name">
-
-<input id="from" placeholder="Abholadresse">
-<div id="fromSuggestions"></div>
-
+<input id="from" placeholder="Startadresse">
 <input id="to" placeholder="Zieladresse">
-<div id="toSuggestions"></div>
-
-<!-- ===== ADDED: DATE ===== -->
-<div class="field">
-  <div class="label">📅 Datum wählen</div>
-  <input type="date" id="date">
-</div>
 
 <div class="field">
   <div class="label">⏰ Uhrzeit wählen</div>
@@ -359,67 +329,10 @@ function getDriver(){
 
 /* GEOCODE */
 async function geocode(q){
-  let r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`);
-  let d = await r.json();
-
-  if(!d.features || d.features.length === 0) return null;
-
-  let p = d.features[0];
-
-  return {
-    lat: p.geometry.coordinates[1],
-    lon: p.geometry.coordinates[0]
-  };
+  let r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+  let d=await r.json();
+  return d[0];
 }
-
-/* ===== ADDED: AUTOCOMPLETE ===== */
-async function suggestAddress(query, boxId, inputId){
-  if(query.length < 3){
-    document.getElementById(boxId).innerHTML="";
-    return;
-  }
-
-  try {
-    let r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
-    let d = await r.json();
-
-    let box = document.getElementById(boxId);
-    box.innerHTML = "";
-
-    d.features.forEach(place => {
-      let p = place.properties;
-
-      let name = [
-        p.name,
-        p.street,
-        p.city,
-        p.country
-      ].filter(Boolean).join(", ");
-
-      let div = document.createElement("div");
-      div.className = "suggestion-item";
-      div.innerText = name;
-
-      div.onclick = () => {
-        document.getElementById(inputId).value = name;
-        box.innerHTML = "";
-      };
-
-      box.appendChild(div);
-    });
-
-  } catch(err){
-    console.log("Photon autocomplete error:", err);
-  }
-}
-
-document.getElementById("from").addEventListener("input", e=>{
-  suggestAddress(e.target.value,"fromSuggestions","from");
-});
-
-document.getElementById("to").addEventListener("input", e=>{
-  suggestAddress(e.target.value,"toSuggestions","to");
-});
 
 /* SHEET */
 function openSheet(){
@@ -470,10 +383,7 @@ async function startRide(){
   let to=document.getElementById("to").value;
   let time=document.getElementById("time").value||"sofort";
 
-  // ===== ADDED: DATE =====
-  let date=document.getElementById("date").value;
-
-  if(!name||!from||!to||!date){
+  if(!name||!from||!to){
     alert("Alles ausfüllen!");
     return;
   }
@@ -489,6 +399,7 @@ async function startRide(){
     let s = await geocode(from);
     let e = await geocode(to);
 
+    // ❗ Fallback wenn Geocode fail
     if(!s || !e){
       throw new Error("Geocode failed");
     }
@@ -509,9 +420,10 @@ async function startRide(){
     let dist = (data.routes[0].distance / 1000).toFixed(2);
     let rb = dist > 50 ? 2 : 1;
 
+    // ⏱ Fake Loading stabil (immer 1 Sekunde)
     setTimeout(()=>{
 
-      clearTimeout(forceExit);
+      clearTimeout(forceExit); // stop safety timer
       document.getElementById("screen").style.display="none";
 
       map.fitBounds(poly.getBounds());
@@ -524,10 +436,6 @@ async function startRide(){
           📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
 
           👤 Name: ${name}<br>
-
-          <!-- ===== ADDED ===== -->
-          📅 Datum: ${date}<br>
-
           🕒 Abholzeit: ${time}<br><br>
 
           📍 Start: ${from}<br>
@@ -542,9 +450,13 @@ async function startRide(){
     }, 1000);
 
   } catch(err){
-    console.log(err);
+
+    console.log("ERROR:", err);
+
+    // ❗ IMMER STOPPEN
     clearTimeout(forceExit);
     document.getElementById("screen").style.display="none";
+
     alert("Route konnte nicht geladen werden 😅");
   }
 }
@@ -569,12 +481,6 @@ function resetRide(){
   document.getElementById("from").value="";
   document.getElementById("to").value="";
   document.getElementById("time").value="";
-  document.getElementById("date").value="";
-
-  // 👉 WICHTIG: Vorschläge löschen
-  document.getElementById("fromSuggestions").innerHTML="";
-  document.getElementById("toSuggestions").innerHTML="";
-
   closeSheet();
   map.setView([52.3759,9.7320],13);
 }

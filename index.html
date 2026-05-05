@@ -359,16 +359,19 @@ function getDriver(){
 
 /* GEOCODE */
 async function geocode(q){
-  let r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`);
+  let r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=10`);
   let d = await r.json();
 
   if(!d.features || d.features.length === 0) return null;
 
-  let p = d.features[0];
+  // 🔥 bestes Ergebnis suchen (nicht einfach erstes)
+  let best = d.features.find(f =>
+    f.properties.housenumber
+  ) || d.features[0];
 
   return {
-    lat: p.geometry.coordinates[1],
-    lon: p.geometry.coordinates[0]
+    lat: best.geometry.coordinates[1],
+    lon: best.geometry.coordinates[0]
   };
 }
 
@@ -383,18 +386,24 @@ async function suggestAddress(query, boxId, inputId){
     let r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
     let d = await r.json();
 
-    let box = document.getElementById(boxId);
-    box.innerHTML = "";
+   let box = document.getElementById(boxId);
+   box.innerHTML = "";
 
-    d.features.forEach(place => {
-      let p = place.properties;
+   // 🔥 HIER EINBAUEN
+   d.features.sort((a, b) => {
+  return (b.properties.housenumber ? 1 : 0) -
+         (a.properties.housenumber ? 1 : 0);
+  });
+
+  d.features.forEach(place => {
 
       let name = [
         p.name,
         p.street,
+        p.housenumber,
         p.city,
         p.country
-      ].filter(Boolean).join(", ");
+      ].filter(Boolean).join(" ");
 
       let div = document.createElement("div");
       div.className = "suggestion-item";

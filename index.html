@@ -379,24 +379,38 @@ async function suggestAddress(query, boxId, inputId){
     return;
   }
 
-  let r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`);
-  let d = await r.json();
+  try {
+    let r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
+    let d = await r.json();
 
-  let box = document.getElementById(boxId);
-  box.innerHTML = "";
+    let box = document.getElementById(boxId);
+    box.innerHTML = "";
 
-  d.forEach(place => {
-    let div = document.createElement("div");
-    div.className = "suggestion-item";
-    div.innerText = place.display_name;
+    d.features.forEach(place => {
+      let p = place.properties;
 
-    div.onclick = () => {
-      document.getElementById(inputId).value = place.display_name;
-      box.innerHTML = "";
-    };
+      let name = [
+        p.name,
+        p.street,
+        p.city,
+        p.country
+      ].filter(Boolean).join(", ");
 
-    box.appendChild(div);
-  });
+      let div = document.createElement("div");
+      div.className = "suggestion-item";
+      div.innerText = name;
+
+      div.onclick = () => {
+        document.getElementById(inputId).value = name;
+        box.innerHTML = "";
+      };
+
+      box.appendChild(div);
+    });
+
+  } catch(err){
+    console.log("Photon autocomplete error:", err);
+  }
 }
 
 document.getElementById("from").addEventListener("input", e=>{

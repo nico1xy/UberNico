@@ -390,45 +390,75 @@ async function startRide(){
 
   document.getElementById("screen").style.display="flex";
 
-  let s=await geocode(from);
-  let e=await geocode(to);
+  let forceExit = setTimeout(()=>{
+    document.getElementById("screen").style.display="none";
+  }, 2500); // 💡 HARTE ABSICHERUNG
 
-  let res=await fetch(`https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`);
-  let data=await res.json();
+  try {
 
-  routeCoords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
-  let poly=L.polyline(routeCoords).addTo(map);
+    let s = await geocode(from);
+    let e = await geocode(to);
 
-  let dist=(data.routes[0].distance/1000).toFixed(2);
-  let rb=dist>50?2:1;
+    // ❗ Fallback wenn Geocode fail
+    if(!s || !e){
+      throw new Error("Geocode failed");
+    }
 
-  setTimeout(()=>{
+    let res = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${s.lon},${s.lat};${e.lon},${e.lat}?overview=full&geometries=geojson`
+    );
 
+    let data = await res.json();
+
+    if(!data.routes || !data.routes[0]){
+      throw new Error("Route failed");
+    }
+
+    routeCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+    let poly = L.polyline(routeCoords).addTo(map);
+
+    let dist = (data.routes[0].distance / 1000).toFixed(2);
+    let rb = dist > 50 ? 2 : 1;
+
+    // ⏱ Fake Loading stabil (immer 1 Sekunde)
+    setTimeout(()=>{
+
+      clearTimeout(forceExit); // stop safety timer
+      document.getElementById("screen").style.display="none";
+
+      map.fitBounds(poly.getBounds());
+      startDrive();
+      openSheet();
+      showPayment();
+
+      document.getElementById("sheetContent").innerHTML=`
+        <div class="receipt">
+          📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
+
+          👤 Name: ${name}<br>
+          🕒 Abholzeit: ${time}<br><br>
+
+          📍 Start: ${from}<br>
+          🎯 Ziel: ${to}<br><br>
+
+          🚘 Fahrer: ${driver.name} (${driver.car})<br>
+          📏 Kilometer: ${dist} km<br>
+          🥤 Bezahlung: ${rb} Red Bull
+        </div>
+      `;
+
+    }, 1000);
+
+  } catch(err){
+
+    console.log("ERROR:", err);
+
+    // ❗ IMMER STOPPEN
+    clearTimeout(forceExit);
     document.getElementById("screen").style.display="none";
 
-    map.fitBounds(poly.getBounds());
-    startDrive();
-    openSheet();
-
-    showPayment();
-
-    document.getElementById("sheetContent").innerHTML=`
-      <div class="receipt">
-        📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
-
-        👤 Name: ${name}<br>
-        🕒 Abholzeit: ${time}<br><br>
-
-        📍 Start: ${from}<br>
-        🎯 Ziel: ${to}<br><br>
-
-        🚘 Fahrer: ${driver.name} (${driver.car})<br>
-        📏 Kilometer: ${dist} km<br>
-        🥤 Bezahlung: ${rb} Red Bull
-      </div>
-    `;
-
-  },1000);
+    alert("Route konnte nicht geladen werden 😅");
+  }
 }
 
 /* DRIVE */

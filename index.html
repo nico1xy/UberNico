@@ -359,21 +359,16 @@ function getDriver(){
 
 /* GEOCODE */
 async function geocode(q){
-  let r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=10`);
+  let r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`);
   let d = await r.json();
 
   if(!d.features || d.features.length === 0) return null;
 
-  // 🔥 safe best match
-  let best = d.features.find(f =>
-    f.properties && f.properties.housenumber
-  ) || d.features[0];
-
-  if(!best || !best.geometry) return null;
+  let p = d.features[0];
 
   return {
-    lat: best.geometry.coordinates[1],
-    lon: best.geometry.coordinates[0]
+    lat: p.geometry.coordinates[1],
+    lon: p.geometry.coordinates[0]
   };
 }
 
@@ -388,24 +383,18 @@ async function suggestAddress(query, boxId, inputId){
     let r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
     let d = await r.json();
 
-   let box = document.getElementById(boxId);
-   box.innerHTML = "";
+    let box = document.getElementById(boxId);
+    box.innerHTML = "";
 
-   // 🔥 HIER EINBAUEN
-   d.features.sort((a, b) => {
-  return (b.properties.housenumber ? 1 : 0) -
-         (a.properties.housenumber ? 1 : 0);
-  });
-
-  d.features.forEach(place => {
+    d.features.forEach(place => {
+      let p = place.properties;
 
       let name = [
         p.name,
         p.street,
-        p.housenumber,
         p.city,
         p.country
-      ].filter(Boolean).join(" ");
+      ].filter(Boolean).join(", ");
 
       let div = document.createElement("div");
       div.className = "suggestion-item";
@@ -589,33 +578,6 @@ function resetRide(){
   closeSheet();
   map.setView([52.3759,9.7320],13);
 }
-
-  document.getElementById("from").addEventListener("blur", () => {
-  setTimeout(() => {
-    document.getElementById("fromSuggestions").innerHTML = "";
-  }, 150);
-});
-
-document.getElementById("to").addEventListener("blur", () => {
-  setTimeout(() => {
-    document.getElementById("toSuggestions").innerHTML = "";
-  }, 150);
-});
-
-  document.addEventListener("click", (e) => {
-  const fromBox = document.getElementById("fromSuggestions");
-  const toBox = document.getElementById("toSuggestions");
-
-  if (!document.getElementById("from").contains(e.target) &&
-      !fromBox.contains(e.target)) {
-    fromBox.innerHTML = "";
-  }
-
-  if (!document.getElementById("to").contains(e.target) &&
-      !toBox.contains(e.target)) {
-    toBox.innerHTML = "";
-  }
-});
 
 </script>
 

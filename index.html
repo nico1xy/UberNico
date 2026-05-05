@@ -405,21 +405,32 @@ async function startRide(){
       openSheet();
       showPayment();
 
-     document.getElementById("sheetContent").innerHTML=`
-    <div class="receipt">
-    📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
+    document.getElementById("sheetContent").innerHTML = `
+<div class="receipt" id="receiptText">
 
-    👤 Name: ${name}<br>
-    📅 Datum: ${date}<br>
-    🕒 Abholzeit: ${time}<br><br>
+📸 Bitte Screenshot dieser Fahrt an ${driver.name} über WhatsApp senden<br><br>
 
-    📍 Start: ${from}<br>
-    🎯 Ziel: ${to}<br><br>
+👤 Name: ${name}<br>
+📅 Datum: ${date}<br>
+🕒 Abholzeit: ${time}<br><br>
 
-    🚘 Fahrer: ${driver.name} (${driver.car})<br>
-    📏 Kilometer: ${dist} km<br>
-    🥤 Bezahlung: ${rb} Red Bull
-  </div>
+📍 Start: ${from}<br>
+🎯 Ziel: ${to}<br><br>
+
+🚘 Fahrer: ${driver.name} (${driver.car})<br>
+📏 Kilometer: ${dist} km<br>
+🥤 Bezahlung: ${rb} Red Bull
+
+</div>
+
+<button onclick="copyReceipt()" style="
+  margin-top:12px;
+  background:#1c1c1c;
+  color:#00ff88;
+  border:1px solid #00ff88;
+">
+📋 Copy Summary
+</button>
 `;
 
     },1000);
@@ -454,6 +465,26 @@ function resetRide(){
   map.setView([52.3759,9.7320],13);
 }
 
+// 👇 Datum setzen (ganz sauber am Ende platzieren)
+document.addEventListener("DOMContentLoaded", () => {
+  const dateInput = document.getElementById("date");
+  const today = new Date().toISOString().split("T")[0];
+  dateInput.value = today;
+});
+
+// 👇 Copy Funktion
+function copyReceipt() {
+  const text = document.getElementById("receiptText").innerText;
+
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      alert("Summary kopiert 📋");
+    })
+    .catch(() => {
+      alert("Kopieren hat nicht funktioniert 😅");
+    });
+}
+  
 </script>
 
 </body>
